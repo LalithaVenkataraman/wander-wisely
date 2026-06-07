@@ -144,5 +144,14 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: "Inter", system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  .font-serif-italic {
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.01em;
   }
 }
