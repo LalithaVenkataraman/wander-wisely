@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import {
@@ -11,6 +12,7 @@ import {
   type ItineraryStyle,
   type TripBrief,
 } from "@/lib/wandr-mock";
+import { wandrAct } from "@/lib/wandr-ai.functions";
 
 const searchSchema = z.object({ q: z.string().optional() });
 
@@ -38,6 +40,7 @@ const CHIPS: { key: ChipKey; label: string; options: string[] }[] = [
 function PlanPage() {
   const { q } = Route.useSearch();
   const navigate = useNavigate();
+  const act = useServerFn(wandrAct);
 
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [brief, setBrief] = useState<TripBrief>({});
@@ -47,7 +50,57 @@ function PlanPage() {
   const [followup, setFollowup] = useState("");
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [openChip, setOpenChip] = useState<ChipKey | null>(null);
+  const [thinking, setThinking] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const briefRef = useRef<TripBrief>({});
+  const chatRef = useRef<ChatMsg[]>([]);
+  useEffect(() => { briefRef.current = brief; }, [brief]);
+  useEffect(() => { chatRef.current = chat; }, [chat]);
+
+  const pushWandr = (text: string) => setChat((c) => [...c, { who: "wandr", text }]);
+
+  const runShortlist = async (prompt: string, refinement?: string) => {
+    setThinking(true);
+    try {
+      const r = await act({ data: { mode: "shortlist", prompt, refinement, brief: briefRef.current, history: chatRef.current } });
+      if (r.cards && r.cards.length) {
+        setPane({ label: r.label ?? "A few ideas", cards: r.cards });
+      }
+      if (r.reply) pushWandr(r.reply);
+    } catch (e) {
+      // graceful fallback to mock
+      const fb = getDestinationsForPrompt(prompt);
+      setPane(fb);
+      pushWandr(`(Using offline picks — ${(e as Error).message.slice(0, 80)})`);
+    } finally {
+      setThinking(false);
+    }
+  };
+
+  const runItinerary = async (card: DestinationCard, style: ItineraryStyle, refinement?: string, current?: Itinerary) => {
+    setThinking(true);
+    try {
+      const r = await act({ data: {
+        mode: "itinerary",
+        brief: briefRef.current,
+        history: chatRef.current,
+        currentCity: card.city,
+        currentCountry: card.country,
+        days: current?.durationDays ?? 4,
+        style,
+        currentItinerary: current,
+        refinement,
+      }});
+      if (r.itinerary) setItinerary(r.itinerary);
+      else if (!current) setItinerary(getItinerary(card, { style }));
+      if (r.reply) pushWandr(r.reply);
+    } catch (e) {
+      if (!current) setItinerary(getItinerary(card, { style }));
+      pushWandr(`(Using offline plan — ${(e as Error).message.slice(0, 80)})`);
+    } finally {
+      setThinking(false);
+    }
+  };
 
   useEffect(() => {
     const initialPrompt = q ?? (typeof window !== "undefined" ? sessionStorage.getItem("wandr:prompt") ?? "" : "");
@@ -55,13 +108,11 @@ function PlanPage() {
       navigate({ to: "/" });
       return;
     }
-    const result = getDestinationsForPrompt(initialPrompt);
-    setPane(result);
     setChat([
       { who: "you", text: initialPrompt },
-      { who: "wandr", text: `Ok — ${result.label.toLowerCase()}. Here are four that fit.` },
-      { who: "wandr", text: "Quick — fill any of the chips up top (when, who with, budget, pace) so I can sharpen this. Or just pick a card and we'll figure it out as we go." },
+      { who: "wandr", text: "On it — pulling four that fit." },
     ]);
+    runShortlist(initialPrompt);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -92,40 +143,48 @@ function PlanPage() {
   const confirmPick = (card: DestinationCard) => {
     const style: ItineraryStyle =
       brief.pace === "Mindful" ? "mindful" : brief.pace === "Pack it in" ? "max" : "balanced";
-    const it = getItinerary(card, { style });
-    setItinerary(it);
     setPendingCard(null);
     setShareUrl(null);
     setChat((c) => [
       ...c,
       { who: "you", text: `Let's go with ${card.city}.` },
-      { who: "wandr", text: `Locked in. Here's a ${it.durationDays}-day take — toggle the vibe up top, reorder stops, kick out anything that's not you.` },
+      { who: "wandr", text: `Locked in. Building your ${card.city} plan…` },
     ]);
+    runItinerary(card, style);
   };
 
-  const sendFollowup = (e: React.FormEvent) => {
+  const sendFollowup = async (e: React.FormEvent) => {
     e.preventDefault();
     const v = followup.trim();
     if (!v) return;
-    setChat((c) => [
-      ...c,
-      { who: "you", text: v },
-      { who: "wandr", text: itinerary
-        ? "Noted — I'd reshape the itinerary for that (live edits come when we wire the API)."
-        : "Got it. Pick a card and I'll build it out." },
-    ]);
+    setChat((c) => [...c, { who: "you", text: v }]);
     setFollowup("");
+    setThinking(true);
+    try {
+      const r = await act({ data: { mode: "reply", brief: briefRef.current, history: [...chatRef.current, { who: "you", text: v }], refinement: v } });
+      if (r.brief) setBrief((b) => ({ ...b, ...r.brief }));
+      if (r.reply) pushWandr(r.reply);
+      if (r.intent === "itinerary" && itinerary) {
+        const card: DestinationCard = { id: itinerary.id, city: itinerary.city, country: itinerary.country, tag: "", bestMonths: "", budget: "", flightTime: "", reels: itinerary.reels };
+        await runItinerary(card, itinerary.style, v, itinerary);
+      } else if (r.intent === "shortlist") {
+        await runShortlist(q ?? itinerary?.city ?? "", v);
+      }
+    } catch (e) {
+      pushWandr(`Hmm, I lost my train of thought (${(e as Error).message.slice(0, 80)}). Try again?`);
+    } finally {
+      setThinking(false);
+    }
   };
 
   const setStyle = (style: ItineraryStyle) => {
     if (!itinerary) return;
-    // re-gen with same id/days
     const card: DestinationCard = {
       id: itinerary.id, city: itinerary.city, country: itinerary.country,
       tag: "", bestMonths: "", budget: "", flightTime: "",
       reels: itinerary.reels,
     };
-    setItinerary(getItinerary(card, { days: itinerary.durationDays, style }));
+    runItinerary(card, style, `Reshape to a ${style} pace.`, itinerary);
   };
 
   const moveStop = (dayIdx: number, stopIdx: number, dir: -1 | 1) => {
@@ -181,6 +240,9 @@ function PlanPage() {
               </div>
             </div>
           ))}
+          {thinking && (
+            <div className="text-xs text-muted-foreground italic animate-pulse">Wandr is thinking…</div>
+          )}
           {pendingCard && (
             <div className="flex gap-2 pt-1">
               <button onClick={() => confirmPick(pendingCard)} className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer">Go ahead anyway</button>
