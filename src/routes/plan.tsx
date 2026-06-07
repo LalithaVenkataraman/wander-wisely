@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import {
   getDestinationsForPrompt,
@@ -27,12 +27,6 @@ function PlanPage() {
   const { q } = Route.useSearch();
   const navigate = useNavigate();
 
-  const initialPrompt = useMemo(() => {
-    if (q) return q;
-    if (typeof window !== "undefined") return sessionStorage.getItem("wandr:prompt") ?? "";
-    return "";
-  }, [q]);
-
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [pane, setPane] = useState<{ label: string; cards: DestinationCard[] } | null>(null);
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
@@ -40,6 +34,7 @@ function PlanPage() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const initialPrompt = q ?? sessionStorage.getItem("wandr:prompt") ?? "";
     if (!initialPrompt) {
       navigate({ to: "/" });
       return;
