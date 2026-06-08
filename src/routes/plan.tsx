@@ -486,6 +486,7 @@ function ItineraryView({
   const [tab, setTab] = useState<"days" | "stay" | "eat" | "postcards" | "reviews">("days");
   const dragRef = useRef<{ dayIdx: number; stopIdx: number } | null>(null);
   const [dragOver, setDragOver] = useState<{ dayIdx: number; stopIdx: number } | null>(null);
+  const [expanded, setExpanded] = useState<{ stop: Itinerary["days"][number]["stops"][number]; dayTitle: string } | null>(null);
 
   const tabs: { key: typeof tab; label: string }[] = [
     { key: "days", label: "Days" },
