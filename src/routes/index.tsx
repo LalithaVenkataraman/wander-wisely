@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { getRandomSuggestions } from "@/lib/wandr-mock";
+import { LogoWordmark } from "@/components/Logo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
