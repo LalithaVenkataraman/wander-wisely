@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
+import { LogoWordmark, LogoAvatar } from "@/components/Logo";
 import {
   getConflicts,
   getDestinationsForPrompt,
@@ -224,7 +225,7 @@ function PlanPage() {
       {/* LEFT: chat */}
       <aside className="w-[380px] shrink-0 border-r border-border flex flex-col bg-card">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-          <span className="font-serif-italic text-xl text-primary">Wandr</span>
+          <LogoWordmark size={24} className="text-xl text-primary" />
           <button onClick={startOver} className="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
             Start over
           </button>
@@ -233,8 +234,9 @@ function PlanPage() {
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {chat.map((m, i) => (
             <div key={i} className="space-y-1">
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                {m.who === "you" ? "You" : "Wandr"}
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+                {m.who === "wandr" ? <LogoAvatar size={16} /> : null}
+                <span>{m.who === "you" ? "You" : "Wandr"}</span>
               </div>
               <div className={m.who === "you" ? "text-sm leading-relaxed" : "text-base leading-relaxed font-serif-italic text-foreground/90"}>
                 {m.text}
@@ -242,7 +244,9 @@ function PlanPage() {
             </div>
           ))}
           {thinking && (
-            <div className="text-xs text-muted-foreground italic animate-pulse">Wandr is thinking…</div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground italic animate-pulse">
+              <LogoAvatar size={14} /> Wandr is thinking…
+            </div>
           )}
           {pendingCard && (
             <div className="flex gap-2 pt-1">
