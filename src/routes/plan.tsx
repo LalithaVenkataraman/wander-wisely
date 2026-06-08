@@ -502,7 +502,7 @@ function ItineraryView({
           {it.stay.map((s) => (
             <div key={s.tier} className="bg-card border border-border rounded-2xl p-4">
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{s.tier}</div>
-              <div className="font-medium mb-1">{s.name}</div>
+              <div className="font-normal text-foreground/90 mb-1">{s.name}</div>
               <p className="text-sm text-muted-foreground">{s.note}</p>
             </div>
           ))}
