@@ -234,9 +234,12 @@ function PlanPage() {
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {chat.map((m, i) => (
             <div key={i} className="space-y-1">
-              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground">
-                {m.who === "wandr" ? <LogoAvatar size={36} /> : null}
-                <span>{m.who === "you" ? "You" : "Wandr"}</span>
+              <div className="text-xs text-muted-foreground">
+                {m.who === "you" ? (
+                  "You"
+                ) : (
+                  <span className="font-serif-italic text-accent">Wandr</span>
+                )}
               </div>
               <div className={m.who === "you" ? "text-sm leading-relaxed" : "text-base leading-relaxed font-serif-italic text-foreground/90"}>
                 {m.text}
@@ -245,7 +248,7 @@ function PlanPage() {
           ))}
           {thinking && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground italic animate-pulse">
-              <LogoAvatar size={32} /> Wandr is thinking…
+              <span className="font-serif-italic text-accent not-italic">Wandr</span> is thinking…
             </div>
           )}
           {pendingCard && (
