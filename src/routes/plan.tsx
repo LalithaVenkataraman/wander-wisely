@@ -681,12 +681,19 @@ function ItineraryView({
   );
 }
 
-function stopImage(stop: { id: string; title: string }, city: string): string {
-  const firstWord = stop.title.split(/[^a-zA-Z]+/).filter(Boolean)[0] ?? "travel";
-  const tag = encodeURIComponent(`${city} ${firstWord}`.toLowerCase());
+function hashStr(s: string): number {
   let h = 0;
-  for (let i = 0; i < stop.id.length; i++) h = (h * 31 + stop.id.charCodeAt(i)) | 0;
-  return `https://loremflickr.com/400/260/${tag}?lock=${Math.abs(h) % 1000}`;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function stopImages(stop: { id: string; title: string }, city: string, country: string, n = 6): string[] {
+  // Reuse the postcards source (proven reliable) and rotate per stop id.
+  const pool = getPostcards(city, country, 8);
+  const offset = hashStr(stop.id) % pool.length;
+  const out: string[] = [];
+  for (let i = 0; i < n; i++) out.push(pool[(offset + i) % pool.length]);
+  return out;
 }
 
 function StopCard({
