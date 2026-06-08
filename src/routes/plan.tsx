@@ -32,10 +32,10 @@ type ChatMsg = { who: "you" | "wandr"; text: string };
 
 type ChipKey = "when" | "who" | "budget" | "pace";
 const CHIPS: { key: ChipKey; label: string; options: string[] }[] = [
-  { key: "when", label: "When", options: ["Next month", "In 3 months", "This summer", "Flexible"] },
-  { key: "who", label: "Who with", options: ["Solo", "Partner", "With kids", "With older parents", "Friends"] },
-  { key: "budget", label: "Budget", options: ["$ shoestring", "$$ comfortable", "$$$ treat", "Open"] },
-  { key: "pace", label: "Pace", options: ["Mindful", "Balanced", "Pack it in"] },
+  { key: "when", label: "🗓 When", options: ["Next month", "In 3 months", "This summer", "Flexible"] },
+  { key: "who", label: "👥 Who with", options: ["Solo", "Partner", "With kids", "With older parents", "Friends"] },
+  { key: "budget", label: "💸 Budget", options: ["$ shoestring", "$$ comfortable", "$$$ treat", "Open"] },
+  { key: "pace", label: "🌿 Pace", options: ["Mindful", "Balanced", "Pack it in"] },
 ];
 
 function PlanPage() {
@@ -348,8 +348,8 @@ function CardsView({
   return (
     <>
       <h2 className="font-serif-italic text-4xl mb-1">{pane.label}</h2>
-      <p className="text-sm text-muted-foreground mb-6">Real options — scroll through. Tap the polaroid stack to flip photos.</p>
-      <div className="flex flex-col gap-5">
+      <p className="text-sm text-muted-foreground mb-8">Real options — scroll through. Tap the polaroid stack to flip photos. ✨</p>
+      <div className="flex flex-col gap-8">
         {pane.cards.map((c) => {
           const conflicts = getConflicts(c, brief);
           return (
@@ -376,7 +376,7 @@ function CardsView({
                     onClick={() => onPick(c)}
                     className="text-xs px-4 py-2 rounded-full bg-primary text-primary-foreground hover:opacity-90 cursor-pointer"
                   >
-                    Plan {c.city} →
+                    ✈️ Plan {c.city} →
                   </button>
                 </div>
               </div>
