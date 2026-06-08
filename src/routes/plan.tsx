@@ -567,95 +567,40 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function CardReelStrip({ city, country, fallbackCount }: { city: string; country: string; fallbackCount: number }) {
-  const vids = getCuratedVideos(city, country, 3);
-  if (vids.length === 0) {
-    return (
-      <>
-        {Array.from({ length: fallbackCount || 3 }).map((_, i) => (
-          <div key={i} className="flex-1 aspect-[9/12] rounded-md bg-gradient-to-br from-primary/25 to-muted grid place-items-center text-primary/80 text-sm">▶</div>
-        ))}
-      </>
-    );
-  }
+function CardReelStrip({ city, country }: { city: string; country: string; fallbackCount?: number }) {
+  const imgs = getPostcards(city, country, 3);
   return (
     <>
-      {vids.map((v) => (
-        <a
-          key={v.id}
-          href={ytWatch(v.id)}
-          target="_blank"
-          rel="noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="flex-1 aspect-[9/12] rounded-md overflow-hidden bg-muted relative group/thumb"
-          title={`${v.title} — ${v.channel}`}
-        >
+      {imgs.map((src, i) => (
+        <div key={i} className="flex-1 aspect-[4/5] rounded-md overflow-hidden bg-muted">
           <img
-            src={ytThumb(v.id)}
-            alt={v.title}
+            src={src}
+            alt=""
             loading="lazy"
             className="w-full h-full object-cover"
-            onError={(e) => {
-              (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br", "from-primary/25", "to-muted");
-              e.currentTarget.style.display = "none";
-            }}
+            onError={(e) => { (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br","from-primary/20","to-muted"); e.currentTarget.style.display = "none"; }}
           />
-          <div className="absolute inset-0 grid place-items-center text-white/90 text-xl opacity-80 group-hover/thumb:opacity-100 drop-shadow">▶</div>
-        </a>
+        </div>
       ))}
     </>
   );
 }
 
-function ReelsRow({ city, country, fallback }: { city: string; country: string; fallback: { title: string; query: string }[] }) {
-  const vids = getCuratedVideos(city, country, 6);
-  if (vids.length === 0) {
-    return (
-      <>
-        {fallback.map((r) => (
-          <a
-            key={r.title}
-            href={`https://www.youtube.com/results?search_query=${encodeURIComponent(r.query)}&sp=EgIYAQ%253D%253D`}
-            target="_blank"
-            rel="noreferrer"
-            className="shrink-0 w-40 bg-card border border-border rounded-2xl overflow-hidden hover:border-primary cursor-pointer transition-colors"
-          >
-            <div className="aspect-[9/16] bg-gradient-to-br from-primary/25 to-muted grid place-items-center text-primary text-2xl">▶</div>
-            <div className="p-2.5"><div className="text-xs font-medium line-clamp-2">{r.title}</div></div>
-          </a>
-        ))}
-      </>
-    );
-  }
+function PostcardsGallery({ city, country }: { city: string; country: string }) {
+  const imgs = getPostcards(city, country, 8);
   return (
-    <>
-      {vids.map((v) => (
-        <a
-          key={v.id}
-          href={ytWatch(v.id)}
-          target="_blank"
-          rel="noreferrer"
-          className="shrink-0 w-40 bg-card border border-border rounded-2xl overflow-hidden hover:border-primary cursor-pointer transition-colors"
-        >
-          <div className="aspect-[9/16] bg-muted relative">
-            <img
-              src={ytThumb(v.id)}
-              alt={v.title}
-              loading="lazy"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br", "from-primary/25", "to-muted");
-                e.currentTarget.style.display = "none";
-              }}
-            />
-            <div className="absolute inset-0 grid place-items-center text-white text-2xl opacity-90 drop-shadow">▶</div>
-          </div>
-          <div className="p-2.5">
-            <div className="text-xs font-medium line-clamp-2">{v.title}</div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">{v.channel}</div>
-          </div>
-        </a>
+    <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
+      {imgs.map((src, i) => (
+        <div key={i} className="shrink-0 w-48 aspect-[4/5] rounded-2xl overflow-hidden bg-muted snap-start border border-border">
+          <img
+            src={src}
+            alt=""
+            loading="lazy"
+            className="w-full h-full object-cover"
+            onError={(e) => { (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br","from-primary/20","to-muted"); e.currentTarget.style.display = "none"; }}
+          />
+        </div>
       ))}
-    </>
+    </div>
   );
 }
