@@ -29,7 +29,7 @@ export const Route = createFileRoute("/plan")({
   component: PlanPage,
 });
 
-type ChatMsg = { who: "you" | "wandr"; text: string };
+type ChatMsg = { who: "you" | "wandr"; text: string; quickReplies?: string[] };
 
 type ChipKey = "when" | "who" | "budget" | "pace";
 const CHIPS: { key: ChipKey; label: string; options: string[] }[] = [
@@ -59,7 +59,8 @@ function PlanPage() {
   useEffect(() => { briefRef.current = brief; }, [brief]);
   useEffect(() => { chatRef.current = chat; }, [chat]);
 
-  const pushWandr = (text: string) => setChat((c) => [...c, { who: "wandr", text }]);
+  const pushWandr = (text: string, quickReplies?: string[]) =>
+    setChat((c) => [...c, { who: "wandr", text, quickReplies }]);
 
   const runShortlist = async (prompt: string, refinement?: string) => {
     setThinking(true);
@@ -68,7 +69,7 @@ function PlanPage() {
       if (r.cards && r.cards.length) {
         setPane({ label: r.label ?? "A few ideas", cards: r.cards });
       }
-      if (r.reply) pushWandr(r.reply);
+      if (r.reply) pushWandr(r.reply, r.quickReplies);
     } catch (e) {
       // graceful fallback to mock
       const fb = getDestinationsForPrompt(prompt);
@@ -95,7 +96,7 @@ function PlanPage() {
       }});
       if (r.itinerary) setItinerary(r.itinerary);
       else if (!current) setItinerary(getItinerary(card, { style }));
-      if (r.reply) pushWandr(r.reply);
+      if (r.reply) pushWandr(r.reply, r.quickReplies);
     } catch (e) {
       if (!current) setItinerary(getItinerary(card, { style }));
       pushWandr(`(Using offline plan — ${(e as Error).message.slice(0, 80)})`);
@@ -128,7 +129,7 @@ function PlanPage() {
         paneShown: false,
       }});
       if (r.brief) setBrief((b) => ({ ...b, ...r.brief }));
-      if (r.reply) pushWandr(r.reply);
+      if (r.reply) pushWandr(r.reply, r.quickReplies);
       if (r.intent === "itinerary" && r.destination) {
         const card: DestinationCard = {
           id: r.destination.city.toLowerCase().replace(/\s+/g, "-"),
@@ -189,13 +190,17 @@ function PlanPage() {
     e.preventDefault();
     const v = followup.trim();
     if (!v) return;
-    setChat((c) => [...c, { who: "you", text: v }]);
     setFollowup("");
+    await submitMessage(v);
+  };
+
+  const submitMessage = async (v: string) => {
+    setChat((c) => [...c, { who: "you", text: v }]);
     setThinking(true);
     try {
       const r = await act({ data: { mode: "reply", brief: briefRef.current, history: [...chatRef.current, { who: "you", text: v }], refinement: v, paneShown: !!pane || !!itinerary } });
       if (r.brief) setBrief((b) => ({ ...b, ...r.brief }));
-      if (r.reply) pushWandr(r.reply);
+      if (r.reply) pushWandr(r.reply, r.quickReplies);
       if (r.intent === "itinerary" && r.destination && !itinerary) {
         // User named a destination in chat — skip cards, go straight to itinerary.
         const card: DestinationCard = {
@@ -231,13 +236,13 @@ function PlanPage() {
     runItinerary(card, style, `Reshape to a ${style} pace.`, itinerary);
   };
 
-  const moveStop = (dayIdx: number, stopIdx: number, dir: -1 | 1) => {
+  const moveStopAcross = (fromDay: number, fromStop: number, toDay: number, toStop: number) => {
     if (!itinerary) return;
+    if (fromDay === toDay && fromStop === toStop) return;
     const days = itinerary.days.map((d) => ({ ...d, stops: [...d.stops] }));
-    const stops = days[dayIdx].stops;
-    const j = stopIdx + dir;
-    if (j < 0 || j >= stops.length) return;
-    [stops[stopIdx], stops[j]] = [stops[j], stops[stopIdx]];
+    const [moved] = days[fromDay].stops.splice(fromStop, 1);
+    const insertAt = fromDay === toDay && toStop > fromStop ? toStop - 1 : toStop;
+    days[toDay].stops.splice(Math.max(0, Math.min(insertAt, days[toDay].stops.length)), 0, moved);
     setItinerary({ ...itinerary, days });
   };
 
@@ -274,23 +279,39 @@ function PlanPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          {chat.map((m, i) => (
-            <div key={i} className="space-y-1">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                {m.who === "you" ? (
-                  "You"
-                ) : (
-                  <>
-                    <LogoAvatar size={20} />
-                    <span className="font-serif-italic text-accent">Wandr</span>
-                  </>
+          {chat.map((m, i) => {
+            const isLast = i === chat.length - 1;
+            return (
+              <div key={i} className="space-y-1">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  {m.who === "you" ? (
+                    "You"
+                  ) : (
+                    <>
+                      <LogoAvatar size={20} />
+                      <span className="font-serif-italic text-accent">Wandr</span>
+                    </>
+                  )}
+                </div>
+                <div className={m.who === "you" ? "text-sm leading-relaxed" : "text-base leading-relaxed font-serif-italic text-foreground/90"}>
+                  {m.text}
+                </div>
+                {m.who === "wandr" && isLast && !thinking && m.quickReplies && m.quickReplies.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-2">
+                    {m.quickReplies.map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => submitMessage(q)}
+                        className="text-xs px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-foreground hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
-              <div className={m.who === "you" ? "text-sm leading-relaxed" : "text-base leading-relaxed font-serif-italic text-foreground/90"}>
-                {m.text}
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {thinking && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground animate-pulse">
               <LogoAvatar size={20} />
@@ -365,7 +386,7 @@ function PlanPage() {
               it={itinerary}
               onBack={() => setItinerary(null)}
               onStyle={setStyle}
-              onMove={moveStop}
+              onMoveAcross={moveStopAcross}
               onRemove={removeStop}
               onSave={onSave}
               shareUrl={shareUrl}
@@ -449,7 +470,7 @@ function ItineraryView({
   it,
   onBack,
   onStyle,
-  onMove,
+  onMoveAcross,
   onRemove,
   onSave,
   shareUrl,
@@ -457,12 +478,22 @@ function ItineraryView({
   it: Itinerary;
   onBack: () => void;
   onStyle: (s: ItineraryStyle) => void;
-  onMove: (dayIdx: number, stopIdx: number, dir: -1 | 1) => void;
+  onMoveAcross: (fromDay: number, fromStop: number, toDay: number, toStop: number) => void;
   onRemove: (dayIdx: number, stopIdx: number) => void;
   onSave: () => void;
   shareUrl: string | null;
 }) {
-  const [openDay, setOpenDay] = useState(1);
+  const [tab, setTab] = useState<"days" | "stay" | "eat" | "postcards" | "reviews">("days");
+  const dragRef = useRef<{ dayIdx: number; stopIdx: number } | null>(null);
+  const [dragOver, setDragOver] = useState<{ dayIdx: number; stopIdx: number } | null>(null);
+
+  const tabs: { key: typeof tab; label: string }[] = [
+    { key: "days", label: "Days" },
+    { key: "stay", label: "Stay" },
+    { key: "eat", label: "Eat & tips" },
+    { key: "postcards", label: "Postcards" },
+    { key: "reviews", label: "Reviews" },
+  ];
 
   return (
     <>
@@ -481,7 +512,7 @@ function ItineraryView({
       </div>
 
       {/* Style toggle */}
-      <div className="mb-8 flex items-center gap-2">
+      <div className="mb-6 flex items-center gap-2">
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground mr-2">Vibe</span>
         {(["mindful", "balanced", "max"] as ItineraryStyle[]).map((s) => (
           <button
@@ -502,57 +533,95 @@ function ItineraryView({
         </div>
       )}
 
-      {/* Days */}
-      <section className="mb-12">
-        <h3 className="font-serif-italic text-2xl mb-4">Day by day</h3>
-        <div className="border border-border rounded-2xl overflow-hidden bg-card">
-          {it.days.map((d, dayIdx) => {
-            const open = openDay === d.day;
-            const total = d.stops.reduce((a, s) => a + s.durationMin, 0);
-            return (
-              <div key={d.day} className="border-b border-border last:border-b-0">
-                <button
-                  onClick={() => setOpenDay(open ? -1 : d.day)}
-                  className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-muted/40 cursor-pointer"
-                >
-                  <div>
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Day {d.day} · {Math.round(total / 60)}h planned</div>
-                    <div className="font-serif-italic text-xl">{d.title}</div>
-                  </div>
-                  <span className="text-muted-foreground text-sm">{open ? "−" : "+"}</span>
-                </button>
-                {open && (
-                  <div className="px-5 pb-5 space-y-2">
-                    {d.stops.length === 0 && (
-                      <div className="text-sm text-muted-foreground italic">Empty day. Add something via chat.</div>
-                    )}
-                    {d.stops.map((s, i) => (
-                      <div key={s.id} className="flex gap-3 items-start py-2 border-t border-border/60 first:border-t-0">
-                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground w-16 pt-1 shrink-0">
-                          {s.timeOfDay}
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-normal text-foreground/90">{s.title}</div>
-                          <div className="text-xs text-muted-foreground">{s.note} · {Math.round(s.durationMin / 15) * 15} min</div>
-                        </div>
-                        <div className="flex items-center gap-1 opacity-70">
-                          <button onClick={() => onMove(dayIdx, i, -1)} disabled={i === 0} className="px-1.5 py-0.5 text-xs rounded hover:bg-muted disabled:opacity-30 cursor-pointer">↑</button>
-                          <button onClick={() => onMove(dayIdx, i, 1)} disabled={i === d.stops.length - 1} className="px-1.5 py-0.5 text-xs rounded hover:bg-muted disabled:opacity-30 cursor-pointer">↓</button>
-                          <button onClick={() => onRemove(dayIdx, i)} className="px-1.5 py-0.5 text-xs rounded hover:bg-destructive/10 hover:text-destructive cursor-pointer">×</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      {/* Tabs */}
+      <div className="flex items-center gap-1 mb-6 border-b border-border overflow-x-auto">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`text-sm px-3 py-2 -mb-px border-b-2 cursor-pointer transition-colors whitespace-nowrap ${
+              tab === t.key
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Stay */}
-      <Section title="🛏 Where to stay">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {tab === "days" && (
+        <section className="mb-12">
+          <p className="text-xs text-muted-foreground mb-4">Drag any card to reorder within a day, or drop it on another day.</p>
+          <div className="space-y-6">
+            {it.days.map((d, dayIdx) => {
+              const total = d.stops.reduce((a, s) => a + s.durationMin, 0);
+              return (
+                <div key={d.day}>
+                  <div className="flex items-baseline justify-between mb-3">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Day {d.day} · {Math.round(total / 60)}h</div>
+                      <div className="font-serif-italic text-2xl">{d.title}</div>
+                    </div>
+                  </div>
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const from = dragRef.current;
+                      if (!from) return;
+                      onMoveAcross(from.dayIdx, from.stopIdx, dayIdx, d.stops.length);
+                      dragRef.current = null;
+                      setDragOver(null);
+                    }}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-2 rounded-xl bg-muted/30 border border-dashed border-border min-h-[120px]"
+                  >
+                    {d.stops.length === 0 && (
+                      <div className="col-span-full text-sm text-muted-foreground italic px-2 py-6 text-center">
+                        Empty day. Drop a stop here or add via chat.
+                      </div>
+                    )}
+                    {d.stops.map((s, i) => {
+                      const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i;
+                      return (
+                        <StopCard
+                          key={s.id}
+                          stop={s}
+                          city={it.city}
+                          isOver={isOver}
+                          onDragStart={() => { dragRef.current = { dayIdx, stopIdx: i }; }}
+                          onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            if (!dragOver || dragOver.dayIdx !== dayIdx || dragOver.stopIdx !== i) {
+                              setDragOver({ dayIdx, stopIdx: i });
+                            }
+                          }}
+                          onDragLeave={() => {
+                            if (dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i) setDragOver(null);
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            const from = dragRef.current;
+                            if (!from) return;
+                            onMoveAcross(from.dayIdx, from.stopIdx, dayIdx, i);
+                            dragRef.current = null;
+                            setDragOver(null);
+                          }}
+                          onRemove={() => onRemove(dayIdx, i)}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {tab === "stay" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-12">
           {it.stay.map((s) => (
             <div key={s.tier} className="bg-card border border-border rounded-2xl p-4">
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{s.tier}</div>
@@ -561,30 +630,37 @@ function ItineraryView({
             </div>
           ))}
         </div>
-      </Section>
+      )}
 
-      <Section title="🍜 Must eat">
-        <ul className="space-y-2">
-          {it.eat.map((e) => (
-            <li key={e} className="text-sm flex gap-3"><span className="text-primary">·</span><span>{e}</span></li>
-          ))}
-        </ul>
-      </Section>
+      {tab === "eat" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+          <div>
+            <h3 className="font-serif-italic text-xl mb-3">Must eat</h3>
+            <ul className="space-y-2">
+              {it.eat.map((e) => (
+                <li key={e} className="text-sm flex gap-3"><span className="text-primary">·</span><span>{e}</span></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-serif-italic text-xl mb-3">Local tips</h3>
+            <ul className="space-y-2">
+              {it.tips.map((t) => (
+                <li key={t} className="text-sm flex gap-3"><span className="text-primary">·</span><span>{t}</span></li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
-      <Section title="💡 Local tips">
-        <ul className="space-y-2">
-          {it.tips.map((t) => (
-            <li key={t} className="text-sm flex gap-3"><span className="text-primary">·</span><span>{t}</span></li>
-          ))}
-        </ul>
-      </Section>
+      {tab === "postcards" && (
+        <div className="mb-12">
+          <PostcardsGallery city={it.city} country={it.country} />
+        </div>
+      )}
 
-      <Section title={`📮 Postcards from ${it.city}`}>
-        <PostcardsGallery city={it.city} country={it.country} />
-      </Section>
-
-      <Section title="💬 What travellers say">
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+      {tab === "reviews" && (
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 mb-12">
           {it.reviews.map((r) => (
             <div key={r.name} className="shrink-0 w-72 bg-card border border-border rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
@@ -595,17 +671,72 @@ function ItineraryView({
             </div>
           ))}
         </div>
-      </Section>
+      )}
     </>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function stopImage(stop: { id: string; title: string }, city: string): string {
+  const firstWord = stop.title.split(/[^a-zA-Z]+/).filter(Boolean)[0] ?? "travel";
+  const tag = encodeURIComponent(`${city} ${firstWord}`.toLowerCase());
+  let h = 0;
+  for (let i = 0; i < stop.id.length; i++) h = (h * 31 + stop.id.charCodeAt(i)) | 0;
+  return `https://loremflickr.com/400/260/${tag}?lock=${Math.abs(h) % 1000}`;
+}
+
+function StopCard({
+  stop, city, isOver,
+  onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onRemove,
+}: {
+  stop: { id: string; title: string; note: string; durationMin: number; timeOfDay: string };
+  city: string;
+  isOver: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: () => void;
+  onDrop: (e: React.DragEvent) => void;
+  onRemove: () => void;
+}) {
   return (
-    <section className="mb-10">
-      <h3 className="font-serif-italic text-2xl mb-4">{title}</h3>
-      {children}
-    </section>
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={`group relative bg-card border rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all ${
+        isOver ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"
+      }`}
+    >
+      <div className="aspect-[16/10] bg-muted relative">
+        <img
+          src={stopImage(stop, city)}
+          alt=""
+          loading="lazy"
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br", "from-primary/20", "to-muted");
+            e.currentTarget.style.display = "none";
+          }}
+        />
+        <div className="absolute top-2 left-2 text-[10px] uppercase tracking-widest bg-background/85 backdrop-blur px-2 py-0.5 rounded-full text-foreground/80">
+          {stop.timeOfDay}
+        </div>
+        <button
+          onClick={onRemove}
+          aria-label="Remove stop"
+          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/85 backdrop-blur text-xs text-foreground/70 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+        >
+          ×
+        </button>
+      </div>
+      <div className="p-3">
+        <div className="text-sm font-normal text-foreground/90 leading-snug">{stop.title}</div>
+        <div className="text-xs text-muted-foreground mt-1 line-clamp-1">{stop.note}</div>
+      </div>
+    </div>
   );
 }
 
