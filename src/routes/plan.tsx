@@ -593,6 +593,7 @@ function ItineraryView({
                           key={s.id}
                           stop={s}
                           city={it.city}
+                          country={it.country}
                           isOver={isOver}
                           onDragStart={() => { dragRef.current = { dayIdx, stopIdx: i }; }}
                           onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
@@ -614,6 +615,7 @@ function ItineraryView({
                             setDragOver(null);
                           }}
                           onRemove={() => onRemove(dayIdx, i)}
+                          onExpand={() => setExpanded({ stop: s, dayTitle: d.title })}
                         />
                       );
                     })}
