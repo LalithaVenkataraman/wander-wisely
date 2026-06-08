@@ -700,11 +700,12 @@ function stopImages(stop: { id: string; title: string }, city: string, country: 
 }
 
 function StopCard({
-  stop, city, isOver,
-  onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onRemove,
+  stop, city, country, isOver,
+  onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onRemove, onExpand,
 }: {
   stop: { id: string; title: string; note: string; durationMin: number; timeOfDay: string };
   city: string;
+  country: string;
   isOver: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
@@ -712,7 +713,9 @@ function StopCard({
   onDragLeave: () => void;
   onDrop: (e: React.DragEvent) => void;
   onRemove: () => void;
+  onExpand: () => void;
 }) {
+  const img = stopImages(stop, city, country, 1)[0];
   return (
     <div
       draggable
@@ -721,13 +724,14 @@ function StopCard({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      onClick={onExpand}
       className={`group relative bg-card border rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all ${
         isOver ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"
       }`}
     >
       <div className="aspect-[16/10] bg-muted relative">
         <img
-          src={stopImage(stop, city)}
+          src={img}
           alt=""
           loading="lazy"
           className="w-full h-full object-cover"
@@ -740,7 +744,7 @@ function StopCard({
           {stop.timeOfDay}
         </div>
         <button
-          onClick={onRemove}
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
           aria-label="Remove stop"
           className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/85 backdrop-blur text-xs text-foreground/70 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
         >
