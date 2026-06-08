@@ -555,22 +555,62 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function CardReelStrip({ city, country }: { city: string; country: string; fallbackCount?: number }) {
-  const imgs = getPostcards(city, country, 3);
+function PolaroidStack({ city, country }: { city: string; country: string }) {
+  const imgs = getPostcards(city, country, 5);
+  const [order, setOrder] = useState<number[]>(() => imgs.map((_, i) => i));
+  const cycle = () => setOrder((o) => [...o.slice(1), o[0]]);
+  // Pre-baked rotations/offsets per stack position for that scattered polaroid feel.
+  const poses = [
+    { r: -6, x: -10, y: 4 },
+    { r: 4, x: 8, y: -2 },
+    { r: -2, x: -4, y: 8 },
+    { r: 7, x: 12, y: 6 },
+    { r: -9, x: 2, y: 10 },
+  ];
   return (
-    <>
-      {imgs.map((src, i) => (
-        <div key={i} className="flex-1 aspect-[4/5] rounded-md overflow-hidden bg-muted">
-          <img
-            src={src}
-            alt=""
-            loading="lazy"
-            className="w-full h-full object-cover"
-            onError={(e) => { (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br","from-primary/20","to-muted"); e.currentTarget.style.display = "none"; }}
-          />
-        </div>
-      ))}
-    </>
+    <button
+      type="button"
+      onClick={cycle}
+      aria-label={`Flip ${city} photos`}
+      className="relative w-[240px] h-[280px] cursor-pointer select-none group/stack"
+    >
+      {order.map((imgIdx, pos) => {
+        const isTop = pos === order.length - 1;
+        const pose = poses[pos % poses.length];
+        return (
+          <div
+            key={imgIdx}
+            className="absolute left-1/2 top-1/2 bg-white p-2 pb-8 rounded-sm shadow-lg border border-black/5 transition-all duration-500 ease-out"
+            style={{
+              transform: `translate(-50%, -50%) translate(${pose.x}px, ${pose.y}px) rotate(${pose.r}deg) ${isTop ? "scale(1.02)" : ""}`,
+              zIndex: pos + 1,
+              width: 200,
+            }}
+          >
+            <div className="w-full aspect-[4/5] bg-muted overflow-hidden">
+              <img
+                src={imgs[imgIdx]}
+                alt=""
+                loading="lazy"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br","from-primary/20","to-muted");
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            </div>
+            {isTop && (
+              <div className="absolute bottom-1.5 left-0 right-0 text-center font-serif-italic text-[13px] text-foreground/70">
+                {city}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <div className="absolute -bottom-1 left-0 right-0 text-center text-[10px] uppercase tracking-widest text-muted-foreground opacity-0 group-hover/stack:opacity-100 transition-opacity">
+        tap to flip
+      </div>
+    </button>
   );
 }
 
