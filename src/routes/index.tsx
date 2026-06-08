@@ -98,7 +98,7 @@ function Home() {
           ].map((s) => (
             <div key={s.n} className="px-4">
               <div className="font-serif-italic text-primary text-lg mb-1">{s.n}</div>
-              <div className="font-medium text-sm mb-1">{s.t}</div>
+              <div className="font-normal text-sm mb-1">{s.t}</div>
               <div className="text-xs text-muted-foreground">{s.d}</div>
             </div>
           ))}
