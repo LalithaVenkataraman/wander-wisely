@@ -486,7 +486,12 @@ function ItineraryView({
   const [tab, setTab] = useState<"days" | "stay" | "eat" | "postcards" | "reviews">("days");
   const dragRef = useRef<{ dayIdx: number; stopIdx: number } | null>(null);
   const [dragOver, setDragOver] = useState<{ dayIdx: number; stopIdx: number } | null>(null);
-  const [expanded, setExpanded] = useState<{ stop: Itinerary["days"][number]["stops"][number]; dayTitle: string } | null>(null);
+
+  // Flat list of all stops for modal prev/next navigation
+  const allStops = it.days.flatMap((d, dayIdx) =>
+    d.stops.map((s, stopIdx) => ({ stop: s, dayTitle: d.title, dayIdx, stopIdx }))
+  );
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const tabs: { key: typeof tab; label: string }[] = [
     { key: "days", label: "Days" },
@@ -616,7 +621,7 @@ function ItineraryView({
                             setDragOver(null);
                           }}
                           onRemove={() => onRemove(dayIdx, i)}
-                          onExpand={() => setExpanded({ stop: s, dayTitle: d.title })}
+                          onExpand={() => setExpandedIndex(allStops.findIndex((x) => x.stop.id === s.id))}
                         />
                       );
                     })}
