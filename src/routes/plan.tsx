@@ -284,7 +284,7 @@ function PlanPage() {
                       }`}
                     >
                       <span className="opacity-70 mr-1">{c.label}:</span>
-                      <span className="font-medium">{value ?? "—"}</span>
+                      <span className="font-normal text-foreground/80">{value ?? "—"}</span>
                     </button>
                     {isOpen && (
                       <div className="absolute z-20 mt-2 left-0 bg-popover border border-border rounded-xl shadow-md p-1 min-w-[180px]">
