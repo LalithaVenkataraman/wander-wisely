@@ -396,7 +396,7 @@ function PlanPage() {
               it={itinerary}
               onBack={() => setItinerary(null)}
               onStyle={setStyle}
-              onMove={moveStop}
+              onMoveAcross={moveStopAcross}
               onRemove={removeStop}
               onSave={onSave}
               shareUrl={shareUrl}
