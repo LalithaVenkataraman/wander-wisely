@@ -686,13 +686,17 @@ function ItineraryView({
         </div>
       )}
 
-      {expanded && (
+      {expandedIndex !== null && allStops[expandedIndex] && (
         <StopDetailModal
-          stop={expanded.stop}
-          dayTitle={expanded.dayTitle}
+          stop={allStops[expandedIndex].stop}
+          dayTitle={allStops[expandedIndex].dayTitle}
           city={it.city}
           country={it.country}
-          onClose={() => setExpanded(null)}
+          hasPrev={expandedIndex > 0}
+          hasNext={expandedIndex < allStops.length - 1}
+          onPrev={() => setExpandedIndex(expandedIndex - 1)}
+          onNext={() => setExpandedIndex(expandedIndex + 1)}
+          onClose={() => setExpandedIndex(null)}
         />
       )}
     </>
