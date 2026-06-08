@@ -13,7 +13,7 @@ import {
   type TripBrief,
 } from "@/lib/wandr-mock";
 import { wandrAct } from "@/lib/wandr-ai.functions";
-import { getCuratedVideos, ytThumb, ytWatch } from "@/lib/curated-videos";
+import { getPostcards } from "@/lib/postcards";
 
 const searchSchema = z.object({ q: z.string().optional() });
 
