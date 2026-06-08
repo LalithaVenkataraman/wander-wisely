@@ -42,7 +42,7 @@ function Home() {
   return (
     <main className="min-h-screen flex flex-col bg-background text-foreground">
       <header className="px-8 pt-8">
-        <LogoWordmark size={52} className="text-3xl" />
+        <LogoWordmark size={72} className="text-4xl gap-3" />
       </header>
 
       <section className="flex-1 flex flex-col items-center justify-center px-6 -mt-12">

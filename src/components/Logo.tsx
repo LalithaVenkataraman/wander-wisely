@@ -31,8 +31,8 @@ export function LogoWordmark({
   iconClassName = "",
 }: LogoWordmarkProps) {
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`}>
-      <LogoMark size={size} className={iconClassName} />
+    <span className={`inline-flex items-center gap-2 leading-none ${className}`}>
+      <LogoMark size={size} className={`-ml-1 ${iconClassName}`} />
       {text && (
         <span className="font-serif-italic text-accent">{text}</span>
       )}
