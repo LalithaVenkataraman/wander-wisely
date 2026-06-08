@@ -66,7 +66,7 @@ function Home() {
             />
             <button
               type="submit"
-              className="bg-primary text-primary-foreground rounded-full px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
+              className="bg-primary text-primary-foreground rounded-full px-5 py-2 text-sm font-normal hover:opacity-90 transition-opacity cursor-pointer"
             >
               Let's go
             </button>
