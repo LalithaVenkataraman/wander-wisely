@@ -4,8 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Wandr fonts — Syne (display) + Plus Jakarta Sans (body) — lighter weights */
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Syne:wght@400;500;600&display=swap");
+/* Wandr fonts — Syne (display) + Plus Jakarta Sans (body) — loaded via <link> in __root.tsx */
 
 /*
  * Design system definition.
