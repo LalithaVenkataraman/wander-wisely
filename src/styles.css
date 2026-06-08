@@ -4,8 +4,8 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Wandr fonts */
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap");
+/* Wandr fonts — Syne (display) + Plus Jakarta Sans (body) */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Syne:wght@500;600;700;800&display=swap");
 
 /*
  * Design system definition.
@@ -79,7 +79,7 @@
   --secondary-foreground: oklch(0.22 0.018 50);
   --muted: oklch(0.95 0.015 78);
   --muted-foreground: oklch(0.48 0.02 60);
-  --accent: oklch(0.58 0.16 42);
+  --accent: oklch(0.62 0.08 145);            /* sage #87a878 */
   --accent-foreground: oklch(0.985 0.012 80);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.984 0.003 247.858);
@@ -144,14 +144,20 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: "Inter", system-ui, sans-serif;
-    font-feature-settings: "ss01", "cv11";
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-feature-settings: "ss01", "ss02";
   }
 
   .font-serif-italic {
-    font-family: "Instrument Serif", serif;
-    font-style: italic;
-    font-weight: 400;
-    letter-spacing: -0.01em;
+    font-family: "Syne", "Plus Jakarta Sans", sans-serif;
+    font-weight: 600;
+    font-style: normal;
+    letter-spacing: -0.02em;
+  }
+
+  .font-display {
+    font-family: "Syne", "Plus Jakarta Sans", sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 }
