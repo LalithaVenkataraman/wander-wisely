@@ -459,15 +459,30 @@ function CardsView({
   pane,
   brief,
   onPick,
+  preview,
+  previewLoading,
 }: {
   pane: { label: string; cards: DestinationCard[] };
   brief: TripBrief;
   onPick: (c: DestinationCard) => void;
+  preview?: boolean;
+  previewLoading?: boolean;
 }) {
   return (
     <>
-      <h2 className="font-serif-italic text-4xl mb-1">{pane.label}</h2>
-      <p className="text-sm text-muted-foreground mb-8">Real options — scroll through. Tap the polaroid stack to flip photos. ✨</p>
+      <div className="flex items-center gap-3 mb-1">
+        <h2 className="font-serif-italic text-4xl">{pane.label}</h2>
+        {preview && (
+          <span className="text-[10px] uppercase tracking-widest px-2 py-1 rounded-full bg-accent/15 text-accent border border-accent/30">
+            {previewLoading ? "Refining…" : "Live preview"}
+          </span>
+        )}
+      </div>
+      <p className="text-sm text-muted-foreground mb-8">
+        {preview
+          ? "These shift as we chat. Pick one anytime to lock it in."
+          : "Real options — scroll through. Tap the polaroid stack to flip photos. ✨"}
+      </p>
       <div className="flex flex-col gap-8">
         {pane.cards.map((c) => {
           const conflicts = getConflicts(c, brief);
