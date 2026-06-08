@@ -261,7 +261,7 @@ function PlanPage() {
               placeholder="Refine or ask anything…"
               className="flex-1 bg-transparent outline-none text-sm py-1.5 placeholder:text-muted-foreground"
             />
-            <button type="submit" className="bg-primary text-primary-foreground rounded-full px-3 py-1.5 text-xs font-medium cursor-pointer">Send</button>
+            <button type="submit" className="bg-primary text-primary-foreground rounded-full px-3 py-1.5 text-xs font-normal cursor-pointer">Send</button>
           </div>
         </form>
       </aside>
