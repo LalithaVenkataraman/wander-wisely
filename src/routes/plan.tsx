@@ -261,7 +261,7 @@ function PlanPage() {
               placeholder="Refine or ask anything…"
               className="flex-1 bg-transparent outline-none text-sm py-1.5 placeholder:text-muted-foreground"
             />
-            <button type="submit" className="bg-primary text-primary-foreground rounded-full px-3 py-1.5 text-xs font-medium cursor-pointer">Send</button>
+            <button type="submit" className="bg-primary text-primary-foreground rounded-full px-3 py-1.5 text-xs font-normal cursor-pointer">Send</button>
           </div>
         </form>
       </aside>
@@ -284,7 +284,7 @@ function PlanPage() {
                       }`}
                     >
                       <span className="opacity-70 mr-1">{c.label}:</span>
-                      <span className="font-medium">{value ?? "—"}</span>
+                      <span className="font-normal text-foreground/80">{value ?? "—"}</span>
                     </button>
                     {isOpen && (
                       <div className="absolute z-20 mt-2 left-0 bg-popover border border-border rounded-xl shadow-md p-1 min-w-[180px]">
@@ -478,7 +478,7 @@ function ItineraryView({
                           {s.timeOfDay}
                         </div>
                         <div className="flex-1">
-                          <div className="text-sm font-medium">{s.title}</div>
+                          <div className="text-sm font-normal text-foreground/90">{s.title}</div>
                           <div className="text-xs text-muted-foreground">{s.note} · {Math.round(s.durationMin / 15) * 15} min</div>
                         </div>
                         <div className="flex items-center gap-1 opacity-70">
@@ -502,7 +502,7 @@ function ItineraryView({
           {it.stay.map((s) => (
             <div key={s.tier} className="bg-card border border-border rounded-2xl p-4">
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{s.tier}</div>
-              <div className="font-medium mb-1">{s.name}</div>
+              <div className="font-normal text-foreground/90 mb-1">{s.name}</div>
               <p className="text-sm text-muted-foreground">{s.note}</p>
             </div>
           ))}
@@ -534,7 +534,7 @@ function ItineraryView({
           {it.reviews.map((r) => (
             <div key={r.name} className="shrink-0 w-72 bg-card border border-border rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-medium">{r.name}</div>
+                <div className="text-sm font-normal text-foreground/90">{r.name}</div>
                 <div className="text-primary text-xs">{"★".repeat(r.stars)}</div>
               </div>
               <p className="text-sm text-foreground/80">{r.text}</p>

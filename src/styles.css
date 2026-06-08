@@ -4,8 +4,8 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Wandr fonts — Syne (display) + Plus Jakarta Sans (body) */
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Syne:wght@500;600;700;800&display=swap");
+/* Wandr fonts — Syne (display) + Plus Jakarta Sans (body) — lighter weights */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Syne:wght@400;500;600&display=swap");
 
 /*
  * Design system definition.
@@ -66,17 +66,17 @@
 
 :root {
   --radius: 0.625rem;
-  /* Warm sand / cream + terra-cotta */
+  /* Warm sand / cream + terra-cotta — softer grays */
   --background: oklch(0.985 0.012 80);
-  --foreground: oklch(0.18 0.015 50);
+  --foreground: oklch(0.32 0.01 55);
   --card: oklch(0.995 0.008 85);
-  --card-foreground: oklch(0.18 0.015 50);
+  --card-foreground: oklch(0.32 0.01 55);
   --popover: oklch(0.995 0.008 85);
-  --popover-foreground: oklch(0.18 0.015 50);
+  --popover-foreground: oklch(0.32 0.01 55);
   --primary: oklch(0.58 0.16 42);            /* terra-cotta #C4521A */
   --primary-foreground: oklch(0.985 0.012 80);
   --secondary: oklch(0.94 0.018 75);
-  --secondary-foreground: oklch(0.22 0.018 50);
+  --secondary-foreground: oklch(0.30 0.015 55);
   --muted: oklch(0.95 0.015 78);
   --muted-foreground: oklch(0.48 0.02 60);
   --accent: oklch(0.62 0.08 145);            /* sage #87a878 */
@@ -150,14 +150,14 @@
 
   .font-serif-italic {
     font-family: "Syne", "Plus Jakarta Sans", sans-serif;
-    font-weight: 600;
+    font-weight: 500;
     font-style: normal;
     letter-spacing: -0.02em;
   }
 
   .font-display {
     font-family: "Syne", "Plus Jakarta Sans", sans-serif;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: -0.02em;
   }
 }
