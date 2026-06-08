@@ -497,7 +497,7 @@ function ItineraryView({
       </section>
 
       {/* Stay */}
-      <Section title="Where to stay">
+      <Section title="🛏 Where to stay">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {it.stay.map((s) => (
             <div key={s.tier} className="bg-card border border-border rounded-2xl p-4">
@@ -509,7 +509,7 @@ function ItineraryView({
         </div>
       </Section>
 
-      <Section title="Must eat">
+      <Section title="🍜 Must eat">
         <ul className="space-y-2">
           {it.eat.map((e) => (
             <li key={e} className="text-sm flex gap-3"><span className="text-primary">·</span><span>{e}</span></li>
@@ -517,7 +517,7 @@ function ItineraryView({
         </ul>
       </Section>
 
-      <Section title="Local tips">
+      <Section title="💡 Local tips">
         <ul className="space-y-2">
           {it.tips.map((t) => (
             <li key={t} className="text-sm flex gap-3"><span className="text-primary">·</span><span>{t}</span></li>
@@ -525,11 +525,11 @@ function ItineraryView({
         </ul>
       </Section>
 
-      <Section title={`Postcards from ${it.city}`}>
+      <Section title={`📮 Postcards from ${it.city}`}>
         <PostcardsGallery city={it.city} country={it.country} />
       </Section>
 
-      <Section title="What travellers say">
+      <Section title="💬 What travellers say">
         <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
           {it.reviews.map((r) => (
             <div key={r.name} className="shrink-0 w-72 bg-card border border-border rounded-2xl p-4">
