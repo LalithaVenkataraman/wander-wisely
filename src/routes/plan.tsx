@@ -486,7 +486,12 @@ function ItineraryView({
   const [tab, setTab] = useState<"days" | "stay" | "eat" | "postcards" | "reviews">("days");
   const dragRef = useRef<{ dayIdx: number; stopIdx: number } | null>(null);
   const [dragOver, setDragOver] = useState<{ dayIdx: number; stopIdx: number } | null>(null);
-  const [expanded, setExpanded] = useState<{ stop: Itinerary["days"][number]["stops"][number]; dayTitle: string } | null>(null);
+
+  // Flat list of all stops for modal prev/next navigation
+  const allStops = it.days.flatMap((d, dayIdx) =>
+    d.stops.map((s, stopIdx) => ({ stop: s, dayTitle: d.title, dayIdx, stopIdx }))
+  );
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const tabs: { key: typeof tab; label: string }[] = [
     { key: "days", label: "Days" },
@@ -616,7 +621,7 @@ function ItineraryView({
                             setDragOver(null);
                           }}
                           onRemove={() => onRemove(dayIdx, i)}
-                          onExpand={() => setExpanded({ stop: s, dayTitle: d.title })}
+                          onExpand={() => setExpandedIndex(allStops.findIndex((x) => x.stop.id === s.id))}
                         />
                       );
                     })}
@@ -681,13 +686,17 @@ function ItineraryView({
         </div>
       )}
 
-      {expanded && (
+      {expandedIndex !== null && allStops[expandedIndex] && (
         <StopDetailModal
-          stop={expanded.stop}
-          dayTitle={expanded.dayTitle}
+          stop={allStops[expandedIndex].stop}
+          dayTitle={allStops[expandedIndex].dayTitle}
           city={it.city}
           country={it.country}
-          onClose={() => setExpanded(null)}
+          hasPrev={expandedIndex > 0}
+          hasNext={expandedIndex < allStops.length - 1}
+          onPrev={() => setExpandedIndex(expandedIndex - 1)}
+          onNext={() => setExpandedIndex(expandedIndex + 1)}
+          onClose={() => setExpandedIndex(null)}
         />
       )}
     </>
@@ -848,13 +857,17 @@ function PostcardsGallery({ city, country }: { city: string; country: string }) 
 }
 
 function StopDetailModal({
-  stop, dayTitle, city, country, onClose,
+  stop, dayTitle, city, country, onClose, hasPrev, hasNext, onPrev, onNext,
 }: {
   stop: { id: string; title: string; note: string; durationMin: number; timeOfDay: string };
   dayTitle: string;
   city: string;
   country: string;
   onClose: () => void;
+  hasPrev: boolean;
+  hasNext: boolean;
+  onPrev: () => void;
+  onNext: () => void;
 }) {
   const imgs = stopImages(stop, city, country, 6);
   const searchQuery = `${stop.title} ${city}`;
@@ -881,6 +894,25 @@ function StopDetailModal({
           <div className="absolute top-3 left-3 text-[10px] uppercase tracking-widest bg-background/85 backdrop-blur px-2 py-0.5 rounded-full text-foreground/80">
             {stop.timeOfDay} · {Math.round(stop.durationMin / 60 * 10) / 10}h
           </div>
+          {/* Prev/Next arrows on the image */}
+          {hasPrev && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onPrev(); }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/90 backdrop-blur text-foreground hover:bg-background cursor-pointer flex items-center justify-center text-xl shadow-lg"
+              aria-label="Previous stop"
+            >
+              ‹
+            </button>
+          )}
+          {hasNext && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onNext(); }}
+              className="absolute right-14 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/90 backdrop-blur text-foreground hover:bg-background cursor-pointer flex items-center justify-center text-xl shadow-lg"
+              aria-label="Next stop"
+            >
+              ›
+            </button>
+          )}
         </div>
         <div className="p-6 space-y-5">
           <div>
@@ -920,6 +952,28 @@ function StopDetailModal({
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
+            </div>
+          </div>
+
+          {/* Footer nav */}
+          <div className="flex items-center justify-between pt-2 border-t border-border">
+            <button
+              onClick={onClose}
+              className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              ← Back to itinerary
+            </button>
+            <div className="flex items-center gap-2">
+              {hasPrev && (
+                <button onClick={onPrev} className="text-xs px-3 py-1.5 rounded-full border border-border hover:bg-muted cursor-pointer">
+                  ← Prev
+                </button>
+              )}
+              {hasNext && (
+                <button onClick={onNext} className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
+                  Next →
+                </button>
+              )}
             </div>
           </div>
         </div>
