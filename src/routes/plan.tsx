@@ -680,6 +680,16 @@ function ItineraryView({
           ))}
         </div>
       )}
+
+      {expanded && (
+        <StopDetailModal
+          stop={expanded.stop}
+          dayTitle={expanded.dayTitle}
+          city={it.city}
+          country={it.country}
+          onClose={() => setExpanded(null)}
+        />
+      )}
     </>
   );
 }
