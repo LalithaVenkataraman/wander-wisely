@@ -607,8 +607,8 @@ function PolaroidStack({ city, country }: { city: string; country: string }) {
           </div>
         );
       })}
-      <div className="absolute -bottom-1 left-0 right-0 text-center text-[10px] uppercase tracking-widest text-muted-foreground opacity-0 group-hover/stack:opacity-100 transition-opacity">
-        tap to flip
+      <div className="absolute -bottom-1 left-0 right-0 text-center text-[10px] uppercase tracking-widest text-muted-foreground opacity-60 group-hover/stack:opacity-100 transition-opacity">
+        👆 tap to flip
       </div>
     </button>
   );
