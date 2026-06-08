@@ -32,10 +32,10 @@ type ChatMsg = { who: "you" | "wandr"; text: string };
 
 type ChipKey = "when" | "who" | "budget" | "pace";
 const CHIPS: { key: ChipKey; label: string; options: string[] }[] = [
-  { key: "when", label: "When", options: ["Next month", "In 3 months", "This summer", "Flexible"] },
-  { key: "who", label: "Who with", options: ["Solo", "Partner", "With kids", "With older parents", "Friends"] },
-  { key: "budget", label: "Budget", options: ["$ shoestring", "$$ comfortable", "$$$ treat", "Open"] },
-  { key: "pace", label: "Pace", options: ["Mindful", "Balanced", "Pack it in"] },
+  { key: "when", label: "🗓 When", options: ["Next month", "In 3 months", "This summer", "Flexible"] },
+  { key: "who", label: "👥 Who with", options: ["Solo", "Partner", "With kids", "With older parents", "Friends"] },
+  { key: "budget", label: "💸 Budget", options: ["$ shoestring", "$$ comfortable", "$$$ treat", "Open"] },
+  { key: "pace", label: "🌿 Pace", options: ["Mindful", "Balanced", "Pack it in"] },
 ];
 
 function PlanPage() {
@@ -348,8 +348,8 @@ function CardsView({
   return (
     <>
       <h2 className="font-serif-italic text-4xl mb-1">{pane.label}</h2>
-      <p className="text-sm text-muted-foreground mb-6">Real options — scroll through. Tap the polaroid stack to flip photos.</p>
-      <div className="flex flex-col gap-5">
+      <p className="text-sm text-muted-foreground mb-8">Real options — scroll through. Tap the polaroid stack to flip photos. ✨</p>
+      <div className="flex flex-col gap-8">
         {pane.cards.map((c) => {
           const conflicts = getConflicts(c, brief);
           return (
@@ -376,7 +376,7 @@ function CardsView({
                     onClick={() => onPick(c)}
                     className="text-xs px-4 py-2 rounded-full bg-primary text-primary-foreground hover:opacity-90 cursor-pointer"
                   >
-                    Plan {c.city} →
+                    ✈️ Plan {c.city} →
                   </button>
                 </div>
               </div>
@@ -497,7 +497,7 @@ function ItineraryView({
       </section>
 
       {/* Stay */}
-      <Section title="Where to stay">
+      <Section title="🛏 Where to stay">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {it.stay.map((s) => (
             <div key={s.tier} className="bg-card border border-border rounded-2xl p-4">
@@ -509,7 +509,7 @@ function ItineraryView({
         </div>
       </Section>
 
-      <Section title="Must eat">
+      <Section title="🍜 Must eat">
         <ul className="space-y-2">
           {it.eat.map((e) => (
             <li key={e} className="text-sm flex gap-3"><span className="text-primary">·</span><span>{e}</span></li>
@@ -517,7 +517,7 @@ function ItineraryView({
         </ul>
       </Section>
 
-      <Section title="Local tips">
+      <Section title="💡 Local tips">
         <ul className="space-y-2">
           {it.tips.map((t) => (
             <li key={t} className="text-sm flex gap-3"><span className="text-primary">·</span><span>{t}</span></li>
@@ -525,11 +525,11 @@ function ItineraryView({
         </ul>
       </Section>
 
-      <Section title={`Postcards from ${it.city}`}>
+      <Section title={`📮 Postcards from ${it.city}`}>
         <PostcardsGallery city={it.city} country={it.country} />
       </Section>
 
-      <Section title="What travellers say">
+      <Section title="💬 What travellers say">
         <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
           {it.reviews.map((r) => (
             <div key={r.name} className="shrink-0 w-72 bg-card border border-border rounded-2xl p-4">
