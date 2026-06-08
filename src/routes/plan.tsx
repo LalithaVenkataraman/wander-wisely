@@ -363,11 +363,7 @@ function CardsView({
 
               {/* mini reels strip */}
               <div className="flex gap-1.5 mb-3">
-                {(c.reels ?? []).slice(0, 3).map((r) => (
-                  <div key={r.title} className="flex-1 aspect-[9/12] rounded-md bg-gradient-to-br from-primary/25 to-muted grid place-items-center text-primary/80 text-sm">
-                    ▶
-                  </div>
-                ))}
+                <CardReelStrip city={c.city} country={c.country} fallbackCount={(c.reels ?? []).length || 3} />
               </div>
 
               <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground border-t border-border pt-3">
