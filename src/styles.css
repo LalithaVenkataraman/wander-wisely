@@ -150,14 +150,14 @@
 
   .font-serif-italic {
     font-family: "Syne", "Plus Jakarta Sans", sans-serif;
-    font-weight: 600;
+    font-weight: 500;
     font-style: normal;
     letter-spacing: -0.02em;
   }
 
   .font-display {
     font-family: "Syne", "Plus Jakarta Sans", sans-serif;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: -0.02em;
   }
 }
