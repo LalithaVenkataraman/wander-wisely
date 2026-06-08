@@ -520,19 +520,8 @@ function ItineraryView({
         </ul>
       </Section>
 
-      <Section title="Watch before you go">
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-          {it.videos.map((v) => (
-            <a key={v.title} href={`https://www.youtube.com/results?search_query=${encodeURIComponent(v.query)}`} target="_blank" rel="noreferrer"
-              className="shrink-0 w-64 bg-card border border-border rounded-2xl overflow-hidden hover:border-primary cursor-pointer transition-colors">
-              <div className="aspect-video bg-gradient-to-br from-primary/15 to-muted grid place-items-center text-primary text-3xl">▶</div>
-              <div className="p-3">
-                <div className="text-sm font-medium line-clamp-2">{v.title}</div>
-                <div className="text-xs text-muted-foreground mt-1">{v.channel}</div>
-              </div>
-            </a>
-          ))}
-        </div>
+      <Section title={`Postcards from ${it.city}`}>
+        <PostcardsGallery city={it.city} country={it.country} />
       </Section>
 
       <Section title="What travellers say">
@@ -546,12 +535,6 @@ function ItineraryView({
               <p className="text-sm text-foreground/80">{r.text}</p>
             </div>
           ))}
-        </div>
-      </Section>
-
-      <Section title="Reels & shorts">
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-          <ReelsRow city={it.city} country={it.country} fallback={it.reels} />
         </div>
       </Section>
     </>
