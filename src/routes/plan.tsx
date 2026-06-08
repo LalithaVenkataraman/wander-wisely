@@ -534,7 +534,7 @@ function ItineraryView({
           {it.reviews.map((r) => (
             <div key={r.name} className="shrink-0 w-72 bg-card border border-border rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-medium">{r.name}</div>
+                <div className="text-sm font-normal text-foreground/90">{r.name}</div>
                 <div className="text-primary text-xs">{"★".repeat(r.stars)}</div>
               </div>
               <p className="text-sm text-foreground/80">{r.text}</p>
