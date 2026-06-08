@@ -29,7 +29,7 @@ export const Route = createFileRoute("/plan")({
   component: PlanPage,
 });
 
-type ChatMsg = { who: "you" | "wandr"; text: string };
+type ChatMsg = { who: "you" | "wandr"; text: string; quickReplies?: string[] };
 
 type ChipKey = "when" | "who" | "budget" | "pace";
 const CHIPS: { key: ChipKey; label: string; options: string[] }[] = [
@@ -59,7 +59,8 @@ function PlanPage() {
   useEffect(() => { briefRef.current = brief; }, [brief]);
   useEffect(() => { chatRef.current = chat; }, [chat]);
 
-  const pushWandr = (text: string) => setChat((c) => [...c, { who: "wandr", text }]);
+  const pushWandr = (text: string, quickReplies?: string[]) =>
+    setChat((c) => [...c, { who: "wandr", text, quickReplies }]);
 
   const runShortlist = async (prompt: string, refinement?: string) => {
     setThinking(true);
@@ -68,7 +69,7 @@ function PlanPage() {
       if (r.cards && r.cards.length) {
         setPane({ label: r.label ?? "A few ideas", cards: r.cards });
       }
-      if (r.reply) pushWandr(r.reply);
+      if (r.reply) pushWandr(r.reply, r.quickReplies);
     } catch (e) {
       // graceful fallback to mock
       const fb = getDestinationsForPrompt(prompt);
@@ -95,7 +96,7 @@ function PlanPage() {
       }});
       if (r.itinerary) setItinerary(r.itinerary);
       else if (!current) setItinerary(getItinerary(card, { style }));
-      if (r.reply) pushWandr(r.reply);
+      if (r.reply) pushWandr(r.reply, r.quickReplies);
     } catch (e) {
       if (!current) setItinerary(getItinerary(card, { style }));
       pushWandr(`(Using offline plan — ${(e as Error).message.slice(0, 80)})`);
@@ -128,7 +129,7 @@ function PlanPage() {
         paneShown: false,
       }});
       if (r.brief) setBrief((b) => ({ ...b, ...r.brief }));
-      if (r.reply) pushWandr(r.reply);
+      if (r.reply) pushWandr(r.reply, r.quickReplies);
       if (r.intent === "itinerary" && r.destination) {
         const card: DestinationCard = {
           id: r.destination.city.toLowerCase().replace(/\s+/g, "-"),
@@ -189,13 +190,17 @@ function PlanPage() {
     e.preventDefault();
     const v = followup.trim();
     if (!v) return;
-    setChat((c) => [...c, { who: "you", text: v }]);
     setFollowup("");
+    await submitMessage(v);
+  };
+
+  const submitMessage = async (v: string) => {
+    setChat((c) => [...c, { who: "you", text: v }]);
     setThinking(true);
     try {
       const r = await act({ data: { mode: "reply", brief: briefRef.current, history: [...chatRef.current, { who: "you", text: v }], refinement: v, paneShown: !!pane || !!itinerary } });
       if (r.brief) setBrief((b) => ({ ...b, ...r.brief }));
-      if (r.reply) pushWandr(r.reply);
+      if (r.reply) pushWandr(r.reply, r.quickReplies);
       if (r.intent === "itinerary" && r.destination && !itinerary) {
         // User named a destination in chat — skip cards, go straight to itinerary.
         const card: DestinationCard = {
@@ -238,6 +243,16 @@ function PlanPage() {
     const j = stopIdx + dir;
     if (j < 0 || j >= stops.length) return;
     [stops[stopIdx], stops[j]] = [stops[j], stops[stopIdx]];
+    setItinerary({ ...itinerary, days });
+  };
+
+  const moveStopAcross = (fromDay: number, fromStop: number, toDay: number, toStop: number) => {
+    if (!itinerary) return;
+    if (fromDay === toDay && fromStop === toStop) return;
+    const days = itinerary.days.map((d) => ({ ...d, stops: [...d.stops] }));
+    const [moved] = days[fromDay].stops.splice(fromStop, 1);
+    const insertAt = fromDay === toDay && toStop > fromStop ? toStop - 1 : toStop;
+    days[toDay].stops.splice(Math.max(0, Math.min(insertAt, days[toDay].stops.length)), 0, moved);
     setItinerary({ ...itinerary, days });
   };
 
