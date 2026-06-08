@@ -110,26 +110,61 @@ function PlanPage() {
       navigate({ to: "/" });
       return;
     }
-    setChat([
-      { who: "you", text: initialPrompt },
-      { who: "wandr", text: "On it — pulling four that fit." },
-    ]);
-    runShortlist(initialPrompt);
+    setChat([{ who: "you", text: initialPrompt }]);
+    // Kick off a conversational intake instead of jumping straight to cards.
+    runIntake(initialPrompt);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const runIntake = async (prompt: string) => {
+    setThinking(true);
+    try {
+      const r = await act({ data: {
+        mode: "reply",
+        brief: briefRef.current,
+        history: chatRef.current,
+        prompt,
+        refinement: prompt,
+        paneShown: false,
+      }});
+      if (r.brief) setBrief((b) => ({ ...b, ...r.brief }));
+      if (r.reply) pushWandr(r.reply);
+      if (r.intent === "itinerary" && r.destination) {
+        const card: DestinationCard = {
+          id: r.destination.city.toLowerCase().replace(/\s+/g, "-"),
+          city: r.destination.city,
+          country: r.destination.country,
+          tag: "", bestMonths: "", budget: "", flightTime: "",
+        };
+        await runItinerary(card, paceToStyle(briefRef.current.pace));
+      } else if (r.intent === "shortlist") {
+        await runShortlist(prompt);
+      }
+    } catch (e) {
+      pushWandr(`(Hit a snag — ${(e as Error).message.slice(0, 80)}) Tell me when you're thinking of going?`);
+    } finally {
+      setThinking(false);
+    }
+  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat]);
 
   const setChip = (key: ChipKey, value: string) => {
-    setBrief((b) => ({ ...b, [key]: value }));
+    const next = { ...briefRef.current, [key]: value };
+    setBrief(next);
     setOpenChip(null);
     setChat((c) => [
       ...c,
       { who: "you", text: `${CHIPS.find((x) => x.key === key)!.label}: ${value}` },
       { who: "wandr", text: wittyAckFor(key, value) },
     ]);
+    // Once we know when + who, surface options proactively (unless we already have).
+    if (next.when && next.who && !pane && !itinerary) {
+      const seed = q ?? (typeof window !== "undefined" ? sessionStorage.getItem("wandr:prompt") ?? "" : "");
+      runShortlist(seed);
+    }
   };
 
   const tryPick = (card: DestinationCard) => {
@@ -163,10 +198,19 @@ function PlanPage() {
     setFollowup("");
     setThinking(true);
     try {
-      const r = await act({ data: { mode: "reply", brief: briefRef.current, history: [...chatRef.current, { who: "you", text: v }], refinement: v } });
+      const r = await act({ data: { mode: "reply", brief: briefRef.current, history: [...chatRef.current, { who: "you", text: v }], refinement: v, paneShown: !!pane || !!itinerary } });
       if (r.brief) setBrief((b) => ({ ...b, ...r.brief }));
       if (r.reply) pushWandr(r.reply);
-      if (r.intent === "itinerary" && itinerary) {
+      if (r.intent === "itinerary" && r.destination && !itinerary) {
+        // User named a destination in chat — skip cards, go straight to itinerary.
+        const card: DestinationCard = {
+          id: r.destination.city.toLowerCase().replace(/\s+/g, "-"),
+          city: r.destination.city,
+          country: r.destination.country,
+          tag: "", bestMonths: "", budget: "", flightTime: "",
+        };
+        await runItinerary(card, paceToStyle(briefRef.current.pace));
+      } else if (r.intent === "itinerary" && itinerary) {
         const card: DestinationCard = { id: itinerary.id, city: itinerary.city, country: itinerary.country, tag: "", bestMonths: "", budget: "", flightTime: "", reels: itinerary.reels };
         await runItinerary(card, itinerary.style, v, itinerary);
       } else if (r.intent === "shortlist") {
@@ -178,6 +222,9 @@ function PlanPage() {
       setThinking(false);
     }
   };
+
+  const paceToStyle = (pace?: string): ItineraryStyle =>
+    pace === "Mindful" ? "mindful" : pace === "Pack it in" ? "max" : "balanced";
 
   const setStyle = (style: ItineraryStyle) => {
     if (!itinerary) return;

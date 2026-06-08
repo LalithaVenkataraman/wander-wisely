@@ -29,6 +29,7 @@ const Input = z.object({
   currentItinerary: z.any().optional(),
   days: z.number().int().min(2).max(10).optional(),
   style: z.enum(["mindful", "balanced", "max"]).optional(),
+  paneShown: z.boolean().optional(),
 });
 
 type WandrResponse = {
@@ -38,6 +39,7 @@ type WandrResponse = {
   itinerary?: Itinerary;
   brief?: TripBrief;
   intent?: "shortlist" | "itinerary" | "chat";
+  destination?: { city: string; country: string };
 };
 
 const SYSTEM = `You are Wandr — a witty, warm travel concierge. Personality: a clever friend who's traveled everywhere, drops dry one-liners, never preachy, never corporate. Keep replies short (1–3 sentences). No emojis. Avoid generic chamber-of-commerce prose.
@@ -51,8 +53,14 @@ Modes:
 - "itinerary": Build a complete day-by-day itinerary for currentCity. Honor brief (pace -> style, who-with -> avoid conflicts, budget). 4 days unless 'days' provided. Style 'mindful' = 2 slower stops/day; 'balanced' = 3 stops/day; 'max' = 4 stops/day.
   Output: {"reply": "...", "itinerary": { "id": "kebab-of-city", "city", "country", "summary": "one witty line", "durationDays": N, "style": "mindful|balanced|max", "days": [ {"day": 1, "title", "stops": [ {"id": "random", "title", "note": "witty specific tip", "durationMin": 60-240, "timeOfDay": "morning|afternoon|evening"} ]} ], "stay": [ {"tier": "Budget|Mid|Splurge", "name", "note"} x3 ], "eat": [string x3], "tips": [string x3], "videos": [{"title", "channel", "query"} x3], "reviews": [{"name", "stars": 1-5, "text"} x3], "reels": [{"title", "query"} x3] }}
 
-- "reply": Free-form chat reply. Decide if the user wants to refine shortlist, refine itinerary, or just chat.
-  Output: {"reply": "...", "intent": "shortlist"|"itinerary"|"chat", "brief": {optional updated fields}}
+- "reply": Conversational turn. ALWAYS extract any brief fields you can infer from what the user just said (when, who, budget, pace) and return them in "brief". Then decide intent:
+    * If the user names a specific city/region they want to plan (e.g. "let's do Kyoto", "Marrakech please", "I want Lisbon"), set intent="itinerary" and "destination": {"city": "...", "country": "..."}. Lock it in warmly.
+    * If essential info is still missing (you need at least: when AND who-with; budget and pace are nice-to-have) AND no shortlist has been shown yet (paneShown=false), set intent="chat" and ask ONE short, warm clarifying question for the most important missing field. Do not list options — just ask like a friend. No shortlist yet.
+    * If the brief is sufficient (have when AND who-with) OR the user explicitly asks to see options ("show me", "give me ideas") AND no shortlist shown yet, set intent="shortlist".
+    * If a shortlist is already shown and the user is refining ("cheaper", "less hot", "closer"), set intent="shortlist".
+    * If an itinerary is already shown and the user is refining it, set intent="itinerary" (no destination needed).
+    * Otherwise intent="chat".
+  Output: {"reply": "...", "intent": "shortlist"|"itinerary"|"chat", "brief": {optional updated fields}, "destination": {optional}}
 `;
 
 function stripFences(s: string): string {
@@ -70,6 +78,7 @@ export const wandrAct = createServerFn({ method: "POST" })
     const ctx: string[] = [`MODE: ${data.mode}`, `BRIEF: ${JSON.stringify(data.brief)}`];
     if (data.prompt) ctx.push(`PROMPT: ${data.prompt}`);
     if (data.refinement) ctx.push(`USER_REFINEMENT: ${data.refinement}`);
+    if (typeof data.paneShown === "boolean") ctx.push(`PANE_SHOWN: ${data.paneShown}`);
     if (data.currentCity) ctx.push(`CITY: ${data.currentCity}${data.currentCountry ? ", " + data.currentCountry : ""}`);
     if (data.days) ctx.push(`DAYS: ${data.days}`);
     if (data.style) ctx.push(`STYLE: ${data.style}`);
