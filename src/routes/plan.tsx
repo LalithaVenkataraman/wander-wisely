@@ -160,11 +160,6 @@ function PlanPage() {
       { who: "you", text: `${CHIPS.find((x) => x.key === key)!.label}: ${value}` },
       { who: "wandr", text: wittyAckFor(key, value) },
     ]);
-    // Once we know when + who, surface options proactively (unless we already have).
-    if (next.when && next.who && !pane && !itinerary) {
-      const seed = q ?? (typeof window !== "undefined" ? sessionStorage.getItem("wandr:prompt") ?? "" : "");
-      runShortlist(seed);
-    }
   };
 
   const tryPick = (card: DestinationCard) => {
