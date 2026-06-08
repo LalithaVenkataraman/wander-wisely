@@ -478,7 +478,7 @@ function ItineraryView({
                           {s.timeOfDay}
                         </div>
                         <div className="flex-1">
-                          <div className="text-sm font-medium">{s.title}</div>
+                          <div className="text-sm font-normal text-foreground/90">{s.title}</div>
                           <div className="text-xs text-muted-foreground">{s.note} · {Math.round(s.durationMin / 15) * 15} min</div>
                         </div>
                         <div className="flex items-center gap-1 opacity-70">
