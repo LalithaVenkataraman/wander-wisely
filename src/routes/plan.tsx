@@ -846,3 +846,84 @@ function PostcardsGallery({ city, country }: { city: string; country: string }) 
     </div>
   );
 }
+
+function StopDetailModal({
+  stop, dayTitle, city, country, onClose,
+}: {
+  stop: { id: string; title: string; note: string; durationMin: number; timeOfDay: string };
+  dayTitle: string;
+  city: string;
+  country: string;
+  onClose: () => void;
+}) {
+  const imgs = stopImages(stop, city, country, 6);
+  const searchQuery = `${stop.title} ${city}`;
+  const ytSearch = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(searchQuery)}`;
+  const ytOpen = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card border border-border rounded-3xl max-w-3xl w-full my-8 overflow-hidden shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="aspect-[16/9] bg-muted relative">
+          <img src={imgs[0]} alt="" className="w-full h-full object-cover" />
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute top-3 right-3 w-9 h-9 rounded-full bg-background/90 backdrop-blur text-foreground hover:bg-background cursor-pointer text-lg"
+          >
+            ×
+          </button>
+          <div className="absolute top-3 left-3 text-[10px] uppercase tracking-widest bg-background/85 backdrop-blur px-2 py-0.5 rounded-full text-foreground/80">
+            {stop.timeOfDay} · {Math.round(stop.durationMin / 60 * 10) / 10}h
+          </div>
+        </div>
+        <div className="p-6 space-y-5">
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{dayTitle}</div>
+            <h3 className="font-serif-italic text-3xl mb-2">{stop.title}</h3>
+            <p className="text-sm text-foreground/80 leading-relaxed">{stop.note}</p>
+          </div>
+
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">More photos</div>
+            <div className="grid grid-cols-3 gap-2">
+              {imgs.slice(1).map((src, i) => (
+                <div key={i} className="aspect-square rounded-lg overflow-hidden bg-muted">
+                  <img src={src} alt="" loading="lazy" className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Watch</div>
+              <a
+                href={ytOpen}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-primary hover:underline"
+              >
+                Open on YouTube ↗
+              </a>
+            </div>
+            <div className="aspect-video rounded-xl overflow-hidden bg-muted border border-border">
+              <iframe
+                src={ytSearch}
+                title={`${stop.title} videos`}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
