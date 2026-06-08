@@ -236,16 +236,6 @@ function PlanPage() {
     runItinerary(card, style, `Reshape to a ${style} pace.`, itinerary);
   };
 
-  const moveStop = (dayIdx: number, stopIdx: number, dir: -1 | 1) => {
-    if (!itinerary) return;
-    const days = itinerary.days.map((d) => ({ ...d, stops: [...d.stops] }));
-    const stops = days[dayIdx].stops;
-    const j = stopIdx + dir;
-    if (j < 0 || j >= stops.length) return;
-    [stops[stopIdx], stops[j]] = [stops[j], stops[stopIdx]];
-    setItinerary({ ...itinerary, days });
-  };
-
   const moveStopAcross = (fromDay: number, fromStop: number, toDay: number, toStop: number) => {
     if (!itinerary) return;
     if (fromDay === toDay && fromStop === toStop) return;
