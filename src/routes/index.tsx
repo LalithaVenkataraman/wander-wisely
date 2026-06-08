@@ -42,12 +42,12 @@ function Home() {
   return (
     <main className="min-h-screen flex flex-col bg-background text-foreground">
       <header className="px-8 pt-8">
-        <span className="font-serif-italic text-2xl text-primary">Wandr</span>
+        <LogoWordmark size={32} className="text-2xl text-primary" />
       </header>
 
       <section className="flex-1 flex flex-col items-center justify-center px-6 -mt-12">
         <h1 className="font-serif-italic text-6xl md:text-7xl text-center text-balance mb-10">
-          Ready to Wandr?
+          Ready to <LogoWordmark size={64} className="text-6xl md:text-7xl" />
         </h1>
 
         <form
