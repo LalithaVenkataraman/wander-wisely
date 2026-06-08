@@ -562,6 +562,11 @@ function ItineraryView({
                     <div>
                       <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Day {d.day} · {Math.round(total / 60)}h</div>
                       <div className="font-serif-italic text-2xl">{d.title}</div>
+                      {d.theme && (
+                        <div className="text-xs text-muted-foreground mt-1 max-w-md italic">
+                          Why together: {d.theme}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div
