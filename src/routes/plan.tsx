@@ -225,7 +225,7 @@ function PlanPage() {
       {/* LEFT: chat */}
       <aside className="w-[380px] shrink-0 border-r border-border flex flex-col bg-card">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-          <LogoWordmark size={24} className="text-xl text-primary" />
+          <LogoWordmark size={24} className="text-xl" />
           <button onClick={startOver} className="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
             Start over
           </button>
