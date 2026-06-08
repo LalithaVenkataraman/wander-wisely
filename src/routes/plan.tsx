@@ -348,37 +348,42 @@ function CardsView({
   return (
     <>
       <h2 className="font-serif-italic text-4xl mb-1">{pane.label}</h2>
-      <p className="text-sm text-muted-foreground mb-6">Four real options. Pick one — you can always come back.</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <p className="text-sm text-muted-foreground mb-6">Real options — scroll through. Tap the polaroid stack to flip photos.</p>
+      <div className="flex flex-col gap-5">
         {pane.cards.map((c) => {
           const conflicts = getConflicts(c, brief);
           return (
-            <button
+            <div
               key={c.id}
-              onClick={() => onPick(c)}
-              className="text-left bg-card border border-border rounded-2xl p-5 hover:border-primary hover:shadow-sm transition-all cursor-pointer group"
+              className="bg-card border border-border rounded-2xl p-5 hover:border-primary hover:shadow-sm transition-all group grid grid-cols-1 md:grid-cols-[1fr_280px] gap-6 items-center"
             >
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{c.country}</div>
-              <div className="font-serif-italic text-2xl mb-2 group-hover:text-primary transition-colors">{c.city}</div>
-              <p className="text-sm text-foreground/80 mb-4">{c.tag}</p>
-
-              {/* mini reels strip */}
-              <div className="flex gap-1.5 mb-3">
-                <CardReelStrip city={c.city} country={c.country} fallbackCount={(c.reels ?? []).length || 3} />
-              </div>
-
-              <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground border-t border-border pt-3">
-                <span>{c.bestMonths}</span><span>·</span>
-                <span>{c.budget}</span><span>·</span>
-                <span>{c.flightTime}</span>
-              </div>
-
-              {conflicts.length > 0 && (
-                <div className="mt-3 text-[11px] text-primary bg-primary/8 border border-primary/20 rounded-md px-2 py-1.5">
-                  ⚠ {conflicts[0]}
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{c.country}</div>
+                <div className="font-serif-italic text-3xl mb-2 group-hover:text-primary transition-colors">{c.city}</div>
+                <p className="text-sm text-foreground/80 mb-4 max-w-prose">{c.tag}</p>
+                <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground border-t border-border pt-3 mb-3">
+                  <span>{c.bestMonths}</span><span>·</span>
+                  <span>{c.budget}</span><span>·</span>
+                  <span>{c.flightTime}</span>
                 </div>
-              )}
-            </button>
+                {conflicts.length > 0 && (
+                  <div className="mb-3 text-[11px] text-primary bg-primary/8 border border-primary/20 rounded-md px-2 py-1.5 inline-block">
+                    ⚠ {conflicts[0]}
+                  </div>
+                )}
+                <div>
+                  <button
+                    onClick={() => onPick(c)}
+                    className="text-xs px-4 py-2 rounded-full bg-primary text-primary-foreground hover:opacity-90 cursor-pointer"
+                  >
+                    Plan {c.city} →
+                  </button>
+                </div>
+              </div>
+              <div className="flex justify-center md:justify-end">
+                <PolaroidStack city={c.city} country={c.country} />
+              </div>
+            </div>
           );
         })}
       </div>
@@ -550,22 +555,62 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function CardReelStrip({ city, country }: { city: string; country: string; fallbackCount?: number }) {
-  const imgs = getPostcards(city, country, 3);
+function PolaroidStack({ city, country }: { city: string; country: string }) {
+  const imgs = getPostcards(city, country, 5);
+  const [order, setOrder] = useState<number[]>(() => imgs.map((_, i) => i));
+  const cycle = () => setOrder((o) => [...o.slice(1), o[0]]);
+  // Pre-baked rotations/offsets per stack position for that scattered polaroid feel.
+  const poses = [
+    { r: -6, x: -10, y: 4 },
+    { r: 4, x: 8, y: -2 },
+    { r: -2, x: -4, y: 8 },
+    { r: 7, x: 12, y: 6 },
+    { r: -9, x: 2, y: 10 },
+  ];
   return (
-    <>
-      {imgs.map((src, i) => (
-        <div key={i} className="flex-1 aspect-[4/5] rounded-md overflow-hidden bg-muted">
-          <img
-            src={src}
-            alt=""
-            loading="lazy"
-            className="w-full h-full object-cover"
-            onError={(e) => { (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br","from-primary/20","to-muted"); e.currentTarget.style.display = "none"; }}
-          />
-        </div>
-      ))}
-    </>
+    <button
+      type="button"
+      onClick={cycle}
+      aria-label={`Flip ${city} photos`}
+      className="relative w-[240px] h-[280px] cursor-pointer select-none group/stack"
+    >
+      {order.map((imgIdx, pos) => {
+        const isTop = pos === order.length - 1;
+        const pose = poses[pos % poses.length];
+        return (
+          <div
+            key={imgIdx}
+            className="absolute left-1/2 top-1/2 bg-white p-2 pb-8 rounded-sm shadow-lg border border-black/5 transition-all duration-500 ease-out"
+            style={{
+              transform: `translate(-50%, -50%) translate(${pose.x}px, ${pose.y}px) rotate(${pose.r}deg) ${isTop ? "scale(1.02)" : ""}`,
+              zIndex: pos + 1,
+              width: 200,
+            }}
+          >
+            <div className="w-full aspect-[4/5] bg-muted overflow-hidden">
+              <img
+                src={imgs[imgIdx]}
+                alt=""
+                loading="lazy"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br","from-primary/20","to-muted");
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            </div>
+            {isTop && (
+              <div className="absolute bottom-1.5 left-0 right-0 text-center font-serif-italic text-[13px] text-foreground/70">
+                {city}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <div className="absolute -bottom-1 left-0 right-0 text-center text-[10px] uppercase tracking-widest text-muted-foreground opacity-0 group-hover/stack:opacity-100 transition-opacity">
+        tap to flip
+      </div>
+    </button>
   );
 }
 
