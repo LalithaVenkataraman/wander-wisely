@@ -40,6 +40,7 @@ type WandrResponse = {
   brief?: TripBrief;
   intent?: "shortlist" | "itinerary" | "chat";
   destination?: { city: string; country: string };
+  quickReplies?: string[];
 };
 
 const SYSTEM = `You are Wandr — a witty, warm travel concierge. Personality: a clever friend who's traveled everywhere, drops dry one-liners, never preachy, never corporate. Keep replies short (1–3 sentences). No emojis. Avoid generic chamber-of-commerce prose.
@@ -60,7 +61,8 @@ Modes:
     * If a shortlist is already shown and the user is refining ("cheaper", "less hot", "closer"), set intent="shortlist".
     * If an itinerary is already shown and the user is refining it, set intent="itinerary" (no destination needed).
     * Otherwise intent="chat".
-  Output: {"reply": "...", "intent": "shortlist"|"itinerary"|"chat", "brief": {optional updated fields}, "destination": {optional}}
+  ALWAYS include "quickReplies": an array of 3–5 ultra-short tap-to-answer options (each 1–4 words) that directly answer the question you just asked. Examples: for "when?" → ["Next month","In 3 months","This summer","Flexible"]; for "who with?" → ["Solo","With partner","With kids","With older parents"]; for "budget?" → ["$ shoestring","$$ comfortable","$$$ treat","Open"]; for "pace?" → ["Mindful","Balanced","Pack it in"]. For refinements use contextual ones like ["Cheaper","Less hot","Closer","More chill"]. Omit only if no sensible quick answers exist.
+  Output: {"reply": "...", "intent": "shortlist"|"itinerary"|"chat", "brief": {optional updated fields}, "destination": {optional}, "quickReplies": ["..."]}
 `;
 
 function stripFences(s: string): string {
