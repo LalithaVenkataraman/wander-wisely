@@ -45,13 +45,6 @@ interface LogoAvatarProps {
   className?: string;
 }
 
-export function LogoAvatar({ size = 24, className = "" }: LogoAvatarProps) {
-  return (
-    <div
-      className={`inline-flex items-center justify-center rounded-full bg-primary/10 border border-primary/20 ${className}`}
-      style={{ width: size, height: size }}
-    >
-      <LogoMark size={size * 0.65} />
-    </div>
-  );
+export function LogoAvatar({ size = 32, className = "" }: LogoAvatarProps) {
+  return <LogoMark size={size} className={className} />;
 }
