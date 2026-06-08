@@ -30,6 +30,7 @@ export type Stop = {
 export type DayPlan = {
   day: number;
   title: string;
+  theme?: string;
   stops: Stop[];
 };
 
@@ -279,6 +280,11 @@ export function getItinerary(
         i === 0 ? "Arrive & wander" :
         i === 1 ? "The classics, intentionally" :
         i === 2 ? "Go a little further" : "Yours",
+      theme:
+        i === 0 ? "All within walking distance of where you'll sleep — gentle on the jet-lag." :
+        i === 1 ? "Clustered in the historic core so you're not burning hours in transit." :
+        i === 2 ? "One short ride out, then back to base by sundown." :
+                  "Looped near your hotel — easy to swap, easy to skip.",
       stops: shaped.map((s) => ({ ...s, id: rid() })),
     };
   });

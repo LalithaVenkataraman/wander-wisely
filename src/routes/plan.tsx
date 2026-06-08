@@ -486,6 +486,7 @@ function ItineraryView({
   const [tab, setTab] = useState<"days" | "stay" | "eat" | "postcards" | "reviews">("days");
   const dragRef = useRef<{ dayIdx: number; stopIdx: number } | null>(null);
   const [dragOver, setDragOver] = useState<{ dayIdx: number; stopIdx: number } | null>(null);
+  const [expanded, setExpanded] = useState<{ stop: Itinerary["days"][number]["stops"][number]; dayTitle: string } | null>(null);
 
   const tabs: { key: typeof tab; label: string }[] = [
     { key: "days", label: "Days" },
@@ -562,6 +563,11 @@ function ItineraryView({
                     <div>
                       <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Day {d.day} · {Math.round(total / 60)}h</div>
                       <div className="font-serif-italic text-2xl">{d.title}</div>
+                      {d.theme && (
+                        <div className="text-xs text-muted-foreground mt-1 max-w-md italic">
+                          Why together: {d.theme}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div
@@ -588,6 +594,7 @@ function ItineraryView({
                           key={s.id}
                           stop={s}
                           city={it.city}
+                          country={it.country}
                           isOver={isOver}
                           onDragStart={() => { dragRef.current = { dayIdx, stopIdx: i }; }}
                           onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
@@ -609,6 +616,7 @@ function ItineraryView({
                             setDragOver(null);
                           }}
                           onRemove={() => onRemove(dayIdx, i)}
+                          onExpand={() => setExpanded({ stop: s, dayTitle: d.title })}
                         />
                       );
                     })}
@@ -672,24 +680,42 @@ function ItineraryView({
           ))}
         </div>
       )}
+
+      {expanded && (
+        <StopDetailModal
+          stop={expanded.stop}
+          dayTitle={expanded.dayTitle}
+          city={it.city}
+          country={it.country}
+          onClose={() => setExpanded(null)}
+        />
+      )}
     </>
   );
 }
 
-function stopImage(stop: { id: string; title: string }, city: string): string {
-  const firstWord = stop.title.split(/[^a-zA-Z]+/).filter(Boolean)[0] ?? "travel";
-  const tag = encodeURIComponent(`${city} ${firstWord}`.toLowerCase());
+function hashStr(s: string): number {
   let h = 0;
-  for (let i = 0; i < stop.id.length; i++) h = (h * 31 + stop.id.charCodeAt(i)) | 0;
-  return `https://loremflickr.com/400/260/${tag}?lock=${Math.abs(h) % 1000}`;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function stopImages(stop: { id: string; title: string }, city: string, country: string, n = 6): string[] {
+  // Reuse the postcards source (proven reliable) and rotate per stop id.
+  const pool = getPostcards(city, country, 8);
+  const offset = hashStr(stop.id) % pool.length;
+  const out: string[] = [];
+  for (let i = 0; i < n; i++) out.push(pool[(offset + i) % pool.length]);
+  return out;
 }
 
 function StopCard({
-  stop, city, isOver,
-  onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onRemove,
+  stop, city, country, isOver,
+  onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onRemove, onExpand,
 }: {
   stop: { id: string; title: string; note: string; durationMin: number; timeOfDay: string };
   city: string;
+  country: string;
   isOver: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
@@ -697,7 +723,9 @@ function StopCard({
   onDragLeave: () => void;
   onDrop: (e: React.DragEvent) => void;
   onRemove: () => void;
+  onExpand: () => void;
 }) {
+  const img = stopImages(stop, city, country, 1)[0];
   return (
     <div
       draggable
@@ -706,13 +734,14 @@ function StopCard({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      onClick={onExpand}
       className={`group relative bg-card border rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all ${
         isOver ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"
       }`}
     >
       <div className="aspect-[16/10] bg-muted relative">
         <img
-          src={stopImage(stop, city)}
+          src={img}
           alt=""
           loading="lazy"
           className="w-full h-full object-cover"
@@ -725,7 +754,7 @@ function StopCard({
           {stop.timeOfDay}
         </div>
         <button
-          onClick={onRemove}
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
           aria-label="Remove stop"
           className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/85 backdrop-blur text-xs text-foreground/70 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
         >
@@ -814,6 +843,87 @@ function PostcardsGallery({ city, country }: { city: string; country: string }) 
           />
         </div>
       ))}
+    </div>
+  );
+}
+
+function StopDetailModal({
+  stop, dayTitle, city, country, onClose,
+}: {
+  stop: { id: string; title: string; note: string; durationMin: number; timeOfDay: string };
+  dayTitle: string;
+  city: string;
+  country: string;
+  onClose: () => void;
+}) {
+  const imgs = stopImages(stop, city, country, 6);
+  const searchQuery = `${stop.title} ${city}`;
+  const ytSearch = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(searchQuery)}`;
+  const ytOpen = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card border border-border rounded-3xl max-w-3xl w-full my-8 overflow-hidden shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="aspect-[16/9] bg-muted relative">
+          <img src={imgs[0]} alt="" className="w-full h-full object-cover" />
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute top-3 right-3 w-9 h-9 rounded-full bg-background/90 backdrop-blur text-foreground hover:bg-background cursor-pointer text-lg"
+          >
+            ×
+          </button>
+          <div className="absolute top-3 left-3 text-[10px] uppercase tracking-widest bg-background/85 backdrop-blur px-2 py-0.5 rounded-full text-foreground/80">
+            {stop.timeOfDay} · {Math.round(stop.durationMin / 60 * 10) / 10}h
+          </div>
+        </div>
+        <div className="p-6 space-y-5">
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{dayTitle}</div>
+            <h3 className="font-serif-italic text-3xl mb-2">{stop.title}</h3>
+            <p className="text-sm text-foreground/80 leading-relaxed">{stop.note}</p>
+          </div>
+
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">More photos</div>
+            <div className="grid grid-cols-3 gap-2">
+              {imgs.slice(1).map((src, i) => (
+                <div key={i} className="aspect-square rounded-lg overflow-hidden bg-muted">
+                  <img src={src} alt="" loading="lazy" className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Watch</div>
+              <a
+                href={ytOpen}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-primary hover:underline"
+              >
+                Open on YouTube ↗
+              </a>
+            </div>
+            <div className="aspect-video rounded-xl overflow-hidden bg-muted border border-border">
+              <iframe
+                src={ytSearch}
+                title={`${stop.title} videos`}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
