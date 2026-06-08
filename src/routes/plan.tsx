@@ -289,23 +289,39 @@ function PlanPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          {chat.map((m, i) => (
-            <div key={i} className="space-y-1">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                {m.who === "you" ? (
-                  "You"
-                ) : (
-                  <>
-                    <LogoAvatar size={20} />
-                    <span className="font-serif-italic text-accent">Wandr</span>
-                  </>
+          {chat.map((m, i) => {
+            const isLast = i === chat.length - 1;
+            return (
+              <div key={i} className="space-y-1">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  {m.who === "you" ? (
+                    "You"
+                  ) : (
+                    <>
+                      <LogoAvatar size={20} />
+                      <span className="font-serif-italic text-accent">Wandr</span>
+                    </>
+                  )}
+                </div>
+                <div className={m.who === "you" ? "text-sm leading-relaxed" : "text-base leading-relaxed font-serif-italic text-foreground/90"}>
+                  {m.text}
+                </div>
+                {m.who === "wandr" && isLast && !thinking && m.quickReplies && m.quickReplies.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-2">
+                    {m.quickReplies.map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => submitMessage(q)}
+                        className="text-xs px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-foreground hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
-              <div className={m.who === "you" ? "text-sm leading-relaxed" : "text-base leading-relaxed font-serif-italic text-foreground/90"}>
-                {m.text}
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {thinking && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground animate-pulse">
               <LogoAvatar size={20} />
