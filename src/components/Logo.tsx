@@ -5,7 +5,7 @@ interface LogoProps {
   className?: string;
 }
 
-export function LogoMark({ size = 28, className = "" }: LogoProps) {
+export function LogoMark({ size = 32, className = "" }: LogoProps) {
   return (
     <img
       src={logoImg}
