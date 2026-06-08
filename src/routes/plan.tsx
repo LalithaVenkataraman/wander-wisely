@@ -47,6 +47,8 @@ function PlanPage() {
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [brief, setBrief] = useState<TripBrief>({});
   const [pane, setPane] = useState<{ label: string; cards: DestinationCard[] } | null>(null);
+  const [previewMode, setPreviewMode] = useState(true);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [pendingCard, setPendingCard] = useState<DestinationCard | null>(null);
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [followup, setFollowup] = useState("");
@@ -68,15 +70,35 @@ function PlanPage() {
       const r = await act({ data: { mode: "shortlist", prompt, refinement, brief: briefRef.current, history: chatRef.current } });
       if (r.cards && r.cards.length) {
         setPane({ label: r.label ?? "A few ideas", cards: r.cards });
+        setPreviewMode(false);
       }
       if (r.reply) pushWandr(r.reply, r.quickReplies);
     } catch (e) {
       // graceful fallback to mock
       const fb = getDestinationsForPrompt(prompt);
       setPane(fb);
+      setPreviewMode(false);
       pushWandr(`(Using offline picks — ${(e as Error).message.slice(0, 80)})`);
     } finally {
       setThinking(false);
+    }
+  };
+
+  // Silent background shortlist that refreshes the right pane while the
+  // intake Q&A is still happening. Doesn't push chat or block the UI.
+  const runPreview = async (prompt: string) => {
+    if (itinerary) return;
+    setPreviewLoading(true);
+    try {
+      const r = await act({ data: { mode: "shortlist", prompt, brief: briefRef.current, history: chatRef.current } });
+      if (r.cards && r.cards.length) {
+        setPane({ label: r.label ?? "Early ideas", cards: r.cards });
+      }
+    } catch {
+      const fb = getDestinationsForPrompt(prompt);
+      setPane(fb);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -114,6 +136,8 @@ function PlanPage() {
     setChat([{ who: "you", text: initialPrompt }]);
     // Kick off a conversational intake instead of jumping straight to cards.
     runIntake(initialPrompt);
+    // And immediately seed the right pane with preview recommendations.
+    runPreview(initialPrompt);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -161,6 +185,8 @@ function PlanPage() {
       { who: "you", text: `${CHIPS.find((x) => x.key === key)!.label}: ${value}` },
       { who: "wandr", text: wittyAckFor(key, value) },
     ]);
+    // Refresh preview cards as the brief gets richer.
+    if (!itinerary && previewMode) runPreview(q ?? "");
   };
 
   const tryPick = (card: DestinationCard) => {
@@ -198,7 +224,8 @@ function PlanPage() {
     setChat((c) => [...c, { who: "you", text: v }]);
     setThinking(true);
     try {
-      const r = await act({ data: { mode: "reply", brief: briefRef.current, history: [...chatRef.current, { who: "you", text: v }], refinement: v, paneShown: !!pane || !!itinerary } });
+      const paneCommitted = (!!pane && !previewMode) || !!itinerary;
+      const r = await act({ data: { mode: "reply", brief: briefRef.current, history: [...chatRef.current, { who: "you", text: v }], refinement: v, paneShown: paneCommitted } });
       if (r.brief) setBrief((b) => ({ ...b, ...r.brief }));
       if (r.reply) pushWandr(r.reply, r.quickReplies);
       if (r.intent === "itinerary" && r.destination && !itinerary) {
@@ -215,6 +242,9 @@ function PlanPage() {
         await runItinerary(card, itinerary.style, v, itinerary);
       } else if (r.intent === "shortlist") {
         await runShortlist(q ?? itinerary?.city ?? "", v);
+      } else if (r.intent === "chat" && !itinerary && previewMode) {
+        // Silently refresh the live preview as more details come in.
+        runPreview(q ?? "");
       }
     } catch (e) {
       pushWandr(`Hmm, I lost my train of thought (${(e as Error).message.slice(0, 80)}). Try again?`);
@@ -380,7 +410,21 @@ function PlanPage() {
             </div>
           </div>
 
-          {!itinerary && pane && <CardsView pane={pane} brief={brief} onPick={tryPick} />}
+          {!itinerary && pane && (
+            <CardsView
+              pane={pane}
+              brief={brief}
+              onPick={tryPick}
+              preview={previewMode}
+              previewLoading={previewLoading}
+            />
+          )}
+          {!itinerary && !pane && (
+            <div className="text-center text-sm text-muted-foreground py-24">
+              <div className="font-serif-italic text-2xl text-foreground/70 mb-2">Sketching some ideas…</div>
+              <div>Recommendations will appear here and refine as we chat.</div>
+            </div>
+          )}
           {itinerary && (
             <ItineraryView
               it={itinerary}
