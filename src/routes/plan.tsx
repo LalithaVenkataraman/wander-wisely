@@ -847,38 +847,6 @@ function stopImages(stop: { id: string; title: string }, city: string, country: 
   return out;
 }
 
-function stopBullets(stop: { id: string; title: string; note: string; durationMin: number; timeOfDay: string }): string[] {
-  const seed = hashStr(stop.id);
-  const hours = Math.max(0.5, Math.round((stop.durationMin / 60) * 2) / 2);
-  const durationBullet =
-    stop.durationMin <= 45 ? "Quick hit — in and out" :
-    stop.durationMin <= 90 ? `~${hours}h sweet spot` :
-    stop.durationMin <= 150 ? `Settle in for ~${hours}h` :
-    `Block out ~${hours}h, don't rush`;
-
-  const timeBullets: Record<string, string[]> = {
-    morning: ["Go early — light is good, crowds aren't", "Beat the tour buses by 10am", "Coffee first, then queue"],
-    afternoon: ["Post-lunch lull = shorter lines", "Hat + water, sun bites here", "Sweet spot before golden hour"],
-    evening: ["Stay for the lights coming on", "Locals show up around now", "Pair it with dinner nearby"],
-  };
-  const timePool = timeBullets[stop.timeOfDay] ?? timeBullets.afternoon;
-  const timeBullet = timePool[seed % timePool.length];
-
-  const flavor = [
-    "Worth the detour, not the queue",
-    "Photogenic, but skip the gift shop",
-    "Cash beats card here",
-    "Comfy shoes, uneven stone",
-    "Guide optional, context helps",
-    "Tickets online — save 30 min",
-    "One must-see room, the rest is bonus",
-    "Small but punches above its weight",
-  ];
-  const flavorBullet = flavor[(seed >> 5) % flavor.length];
-
-  return [durationBullet, timeBullet, flavorBullet];
-}
-
 function StopCard({
   stop, city, country, isOver, commute,
   onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onRemove, onExpand,
