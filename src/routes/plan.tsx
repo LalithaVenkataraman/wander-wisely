@@ -851,7 +851,6 @@ function StopCard({
   onRemove: () => void;
   onExpand: () => void;
 }) {
-  // placeholder marker
   const img = stopImages(stop, city, country, 1)[0];
   return (
     <div
