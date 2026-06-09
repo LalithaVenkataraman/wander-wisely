@@ -827,34 +827,15 @@ function hashStr(s: string): number {
   return Math.abs(h);
 }
 
-function CommuteHop({
-  from,
-  to,
-}: {
-  from: { id: string; title: string };
-  to: { id: string; title: string };
-}) {
+type Commute = { icon: string; label: string; mins: number };
+
+function commuteFor(from: { id: string }, to: { id: string }): Commute {
   const seed = hashStr(from.id + "→" + to.id);
-  const modes = [
-    { icon: "🚶", label: "walk" },
-    { icon: "🚇", label: "metro" },
-    { icon: "🚕", label: "taxi" },
-    { icon: "🚌", label: "bus" },
-  ] as const;
-  const mode = modes[seed % modes.length];
-  // 5–35 min, rounded to 5
+  const modes: Commute["label"][] = ["walk", "metro", "taxi", "bus"];
+  const icons: Record<string, string> = { walk: "🚶", metro: "🚇", taxi: "🚕", bus: "🚌" };
+  const label = modes[seed % modes.length];
   const mins = 5 + ((seed >> 3) % 7) * 5;
-  return (
-    <div className="flex items-center gap-2 px-1 py-1 text-[11px] text-muted-foreground">
-      <span className="h-px flex-1 bg-border" />
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-background border border-border">
-        <span aria-hidden>{mode.icon}</span>
-        <span>~{mins} min {mode.label}</span>
-        <span className="text-foreground/40">to {to.title.length > 22 ? to.title.slice(0, 22) + "…" : to.title}</span>
-      </span>
-      <span className="h-px flex-1 bg-border" />
-    </div>
-  );
+  return { icon: icons[label], label, mins };
 }
 
 function stopImages(stop: { id: string; title: string }, city: string, country: string, n = 6): string[] {
