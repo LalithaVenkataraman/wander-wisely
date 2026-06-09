@@ -844,7 +844,7 @@ function CommuteHop({
   // 5–35 min, rounded to 5
   const mins = 5 + ((seed >> 3) % 7) * 5;
   return (
-    <div className="sm:col-span-2 flex items-center gap-2 px-1 py-1 text-[11px] text-muted-foreground">
+    <div className="flex items-center gap-2 px-1 py-1 text-[11px] text-muted-foreground">
       <span className="h-px flex-1 bg-border" />
       <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-background border border-border">
         <span aria-hidden>{mode.icon}</span>
