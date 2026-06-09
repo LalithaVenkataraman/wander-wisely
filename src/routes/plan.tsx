@@ -565,6 +565,8 @@ function ItineraryView({
   const [tab, setTab] = useState<"days" | "stay" | "eat" | "postcards" | "reviews">("days");
   const dragRef = useRef<{ dayIdx: number; stopIdx: number } | null>(null);
   const [dragOver, setDragOver] = useState<{ dayIdx: number; stopIdx: number } | null>(null);
+  const [addingDay, setAddingDay] = useState<number | null>(null);
+  const [addText, setAddText] = useState("");
 
   // Flat list of all stops for modal prev/next navigation
   const allStops = it.days.flatMap((d, dayIdx) =>
