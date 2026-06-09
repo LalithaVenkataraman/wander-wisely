@@ -928,111 +928,91 @@ function StopDetailModal({
   onPrev: () => void;
   onNext: () => void;
 }) {
-  const imgs = stopImages(stop, city, country, 6);
-  const searchQuery = `${stop.title} ${city}`;
-  const ytSearch = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(searchQuery)}`;
-  const ytOpen = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
+  const variants = ["shorts", "walk tour", "vlog", "food", "travel guide", "things to do"];
+  const shorts = variants.map((v) => {
+    const q = `${stop.title} ${city} ${v}`;
+    return {
+      query: q,
+      embed: `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(q)}&playsinline=1&modestbranding=1&rel=0`,
+    };
+  });
   return (
     <div
-      className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-card border border-border rounded-3xl max-w-3xl w-full my-8 overflow-hidden shadow-2xl"
+        className="bg-card border border-border rounded-3xl max-w-3xl w-full my-8 overflow-hidden shadow-2xl flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="aspect-[16/9] bg-muted relative">
-          <img src={imgs[0]} alt="" className="w-full h-full object-cover" />
+        {/* Sticky top nav — prev / back / next always in reach */}
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 bg-card/95 backdrop-blur border-b border-border">
           <button
             onClick={onClose}
-            aria-label="Close"
-            className="absolute top-3 right-3 w-9 h-9 rounded-full bg-background/90 backdrop-blur text-foreground hover:bg-background cursor-pointer text-lg"
+            className="text-xs text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1"
           >
-            ×
+            ← Back to itinerary
           </button>
-          <div className="absolute top-3 left-3 text-[10px] uppercase tracking-widest bg-background/85 backdrop-blur px-2 py-0.5 rounded-full text-foreground/80">
-            {stop.timeOfDay} · {Math.round(stop.durationMin / 60 * 10) / 10}h
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onPrev}
+              disabled={!hasPrev}
+              className="text-xs px-3 py-1.5 rounded-full border border-border hover:bg-muted cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              ← Prev
+            </button>
+            <button
+              onClick={onNext}
+              disabled={!hasNext}
+              className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Next →
+            </button>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="w-8 h-8 rounded-full bg-muted hover:bg-muted/70 text-foreground cursor-pointer text-lg leading-none ml-1"
+            >
+              ×
+            </button>
           </div>
-          {/* Prev/Next arrows on the image */}
-          {hasPrev && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onPrev(); }}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/90 backdrop-blur text-foreground hover:bg-background cursor-pointer flex items-center justify-center text-xl shadow-lg"
-              aria-label="Previous stop"
-            >
-              ‹
-            </button>
-          )}
-          {hasNext && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onNext(); }}
-              className="absolute right-14 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/90 backdrop-blur text-foreground hover:bg-background cursor-pointer flex items-center justify-center text-xl shadow-lg"
-              aria-label="Next stop"
-            >
-              ›
-            </button>
-          )}
         </div>
-        <div className="p-6 space-y-5">
-          <div>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{dayTitle}</div>
+
+        <div className="overflow-y-auto">
+          {/* Header */}
+          <div className="p-6 pb-4">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
+              {dayTitle} · {stop.timeOfDay} · {Math.round(stop.durationMin / 60 * 10) / 10}h
+            </div>
             <h3 className="font-serif-italic text-3xl mb-2">{stop.title}</h3>
             <p className="text-sm text-foreground/80 leading-relaxed">{stop.note}</p>
           </div>
 
-          <div>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">More photos</div>
-            <div className="grid grid-cols-3 gap-2">
-              {imgs.slice(1).map((src, i) => (
-                <div key={i} className="aspect-square rounded-lg overflow-hidden bg-muted">
-                  <img src={src} alt="" loading="lazy" className="w-full h-full object-cover" />
+          {/* Shorts feed — vertical scroll-snap, plays inline */}
+          <div className="px-6 pb-6">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+              Shorts · swipe up for more
+            </div>
+            <div className="h-[70vh] overflow-y-auto snap-y snap-mandatory rounded-2xl bg-black space-y-0">
+              {shorts.map((s, i) => (
+                <div
+                  key={i}
+                  className="snap-start h-[70vh] w-full flex items-center justify-center relative"
+                >
+                  <div className="aspect-[9/16] h-full max-h-[70vh] bg-black relative">
+                    <iframe
+                      src={s.embed}
+                      title={s.query}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                      allowFullScreen
+                    />
+                    <div className="absolute bottom-3 left-3 text-[10px] uppercase tracking-widest bg-black/60 text-white px-2 py-0.5 rounded-full">
+                      {s.query.split(" ").slice(-2).join(" ")}
+                    </div>
+                  </div>
                 </div>
               ))}
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Watch</div>
-              <a
-                href={ytOpen}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-primary hover:underline"
-              >
-                Open on YouTube ↗
-              </a>
-            </div>
-            <div className="aspect-video rounded-xl overflow-hidden bg-muted border border-border">
-              <iframe
-                src={ytSearch}
-                title={`${stop.title} videos`}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </div>
-
-          {/* Footer nav */}
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <button
-              onClick={onClose}
-              className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              ← Back to itinerary
-            </button>
-            <div className="flex items-center gap-2">
-              {hasPrev && (
-                <button onClick={onPrev} className="text-xs px-3 py-1.5 rounded-full border border-border hover:bg-muted cursor-pointer">
-                  ← Prev
-                </button>
-              )}
-              {hasNext && (
-                <button onClick={onNext} className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
-                  Next →
-                </button>
-              )}
             </div>
           </div>
         </div>
