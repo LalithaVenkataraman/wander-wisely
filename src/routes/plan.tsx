@@ -283,6 +283,23 @@ function PlanPage() {
     setItinerary({ ...itinerary, days });
   };
 
+  const addStop = (dayIdx: number, title: string) => {
+    if (!itinerary) return;
+    const clean = title.trim();
+    if (!clean) return;
+    const days = itinerary.days.map((d) => ({ ...d, stops: [...d.stops] }));
+    const existing = days[dayIdx].stops;
+    const nextTime = existing.length === 0 ? "Morning" : existing.length === 1 ? "Midday" : existing.length === 2 ? "Afternoon" : "Evening";
+    days[dayIdx].stops.push({
+      id: `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      title: clean,
+      note: "Added by you",
+      durationMin: 90,
+      timeOfDay: nextTime,
+    });
+    setItinerary({ ...itinerary, days });
+  };
+
   const onSave = async () => {
     if (!itinerary) return;
     const trip = saveTrip(itinerary, brief);
