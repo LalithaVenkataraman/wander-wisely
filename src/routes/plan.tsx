@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { LogoWordmark, LogoAvatar } from "@/components/Logo";
 import {
@@ -643,11 +643,15 @@ function ItineraryView({
           <div className="space-y-6">
             {it.days.map((d, dayIdx) => {
               const total = d.stops.reduce((a, s) => a + s.durationMin, 0);
+              const commuteMins = d.stops.slice(1).reduce((sum, s, i) => sum + commuteFor(d.stops[i], s).mins, 0);
               return (
                 <div key={d.day}>
                   <div className="flex items-baseline justify-between mb-3">
                     <div>
-                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Day {d.day} · {Math.round(total / 60)}h</div>
+                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        Day {d.day} · {Math.round(total / 60)}h
+                        {commuteMins > 0 && <span> · {commuteMins}m getting around</span>}
+                      </div>
                       <div className="font-serif-italic text-2xl">{d.title}</div>
                       {d.theme && (
                         <div className="text-xs text-muted-foreground mt-1 max-w-md italic">
@@ -672,27 +676,25 @@ function ItineraryView({
                       dragRef.current = null;
                       setDragOver(null);
                     }}
-                    className="p-2 rounded-xl bg-muted/30 border border-dashed border-border min-h-[120px] max-w-2xl"
+                    className="p-2 rounded-xl bg-muted/30 border border-dashed border-border min-h-[120px]"
                   >
                     {d.stops.length === 0 && (
                       <div className="text-sm text-muted-foreground italic px-2 py-6 text-center">
                         Empty day. Drop a stop here, or add one above.
                       </div>
                     )}
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {d.stops.map((s, i) => {
                         const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i;
                         const prev = i > 0 ? d.stops[i - 1] : null;
                         return (
-                          <Fragment key={s.id}>
-                            {prev && (
-                              <CommuteHop from={prev} to={s} />
-                            )}
-                            <StopCard
+                          <StopCard
+                              key={s.id}
                               stop={s}
                               city={it.city}
                               country={it.country}
                               isOver={isOver}
+                              commute={prev ? commuteFor(prev, s) : null}
                               onDragStart={() => { dragRef.current = { dayIdx, stopIdx: i }; }}
                               onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
                               onDragOver={(e) => {
@@ -714,8 +716,7 @@ function ItineraryView({
                               }}
                               onRemove={() => onRemove(dayIdx, i)}
                               onExpand={() => setExpandedIndex(allStops.findIndex((x) => x.stop.id === s.id))}
-                            />
-                          </Fragment>
+                          />
                         );
                       })}
                     </div>
@@ -826,34 +827,15 @@ function hashStr(s: string): number {
   return Math.abs(h);
 }
 
-function CommuteHop({
-  from,
-  to,
-}: {
-  from: { id: string; title: string };
-  to: { id: string; title: string };
-}) {
+type Commute = { icon: string; label: string; mins: number };
+
+function commuteFor(from: { id: string }, to: { id: string }): Commute {
   const seed = hashStr(from.id + "→" + to.id);
-  const modes = [
-    { icon: "🚶", label: "walk" },
-    { icon: "🚇", label: "metro" },
-    { icon: "🚕", label: "taxi" },
-    { icon: "🚌", label: "bus" },
-  ] as const;
-  const mode = modes[seed % modes.length];
-  // 5–35 min, rounded to 5
+  const modes: Commute["label"][] = ["walk", "metro", "taxi", "bus"];
+  const icons: Record<string, string> = { walk: "🚶", metro: "🚇", taxi: "🚕", bus: "🚌" };
+  const label = modes[seed % modes.length];
   const mins = 5 + ((seed >> 3) % 7) * 5;
-  return (
-    <div className="flex items-center gap-2 px-1 py-1 text-[11px] text-muted-foreground">
-      <span className="h-px flex-1 bg-border" />
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-background border border-border">
-        <span aria-hidden>{mode.icon}</span>
-        <span>~{mins} min {mode.label}</span>
-        <span className="text-foreground/40">to {to.title.length > 22 ? to.title.slice(0, 22) + "…" : to.title}</span>
-      </span>
-      <span className="h-px flex-1 bg-border" />
-    </div>
-  );
+  return { icon: icons[label], label, mins };
 }
 
 function stopImages(stop: { id: string; title: string }, city: string, country: string, n = 6): string[] {
@@ -865,46 +847,15 @@ function stopImages(stop: { id: string; title: string }, city: string, country: 
   return out;
 }
 
-function stopBullets(stop: { id: string; title: string; note: string; durationMin: number; timeOfDay: string }): string[] {
-  const seed = hashStr(stop.id);
-  const hours = Math.max(0.5, Math.round((stop.durationMin / 60) * 2) / 2);
-  const durationBullet =
-    stop.durationMin <= 45 ? "Quick hit — in and out" :
-    stop.durationMin <= 90 ? `~${hours}h sweet spot` :
-    stop.durationMin <= 150 ? `Settle in for ~${hours}h` :
-    `Block out ~${hours}h, don't rush`;
-
-  const timeBullets: Record<string, string[]> = {
-    morning: ["Go early — light is good, crowds aren't", "Beat the tour buses by 10am", "Coffee first, then queue"],
-    afternoon: ["Post-lunch lull = shorter lines", "Hat + water, sun bites here", "Sweet spot before golden hour"],
-    evening: ["Stay for the lights coming on", "Locals show up around now", "Pair it with dinner nearby"],
-  };
-  const timePool = timeBullets[stop.timeOfDay] ?? timeBullets.afternoon;
-  const timeBullet = timePool[seed % timePool.length];
-
-  const flavor = [
-    "Worth the detour, not the queue",
-    "Photogenic, but skip the gift shop",
-    "Cash beats card here",
-    "Comfy shoes, uneven stone",
-    "Guide optional, context helps",
-    "Tickets online — save 30 min",
-    "One must-see room, the rest is bonus",
-    "Small but punches above its weight",
-  ];
-  const flavorBullet = flavor[(seed >> 5) % flavor.length];
-
-  return [durationBullet, timeBullet, flavorBullet];
-}
-
 function StopCard({
-  stop, city, country, isOver,
+  stop, city, country, isOver, commute,
   onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onRemove, onExpand,
 }: {
   stop: { id: string; title: string; note: string; durationMin: number; timeOfDay: string };
   city: string;
   country: string;
   isOver: boolean;
+  commute: Commute | null;
   onDragStart: () => void;
   onDragEnd: () => void;
   onDragOver: (e: React.DragEvent) => void;
@@ -914,7 +865,6 @@ function StopCard({
   onExpand: () => void;
 }) {
   const img = stopImages(stop, city, country, 1)[0];
-  const bullets = stopBullets(stop);
   const hours = Math.round((stop.durationMin / 60) * 10) / 10;
   return (
     <div
@@ -925,16 +875,16 @@ function StopCard({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       onClick={onExpand}
-      className={`group relative flex bg-card border rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all ${
+      className={`group relative bg-card border rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all ${
         isOver ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"
       }`}
     >
-      <div className="relative w-40 sm:w-52 shrink-0 bg-muted">
+      <div className="aspect-[16/10] bg-muted relative">
         <img
           src={img}
           alt=""
           loading="lazy"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="w-full h-full object-cover"
           onError={(e) => {
             (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br", "from-primary/20", "to-muted");
             e.currentTarget.style.display = "none";
@@ -943,29 +893,26 @@ function StopCard({
         <div className="absolute top-2 left-2 text-[10px] uppercase tracking-widest bg-background/85 backdrop-blur px-2 py-0.5 rounded-full text-foreground/80">
           {stop.timeOfDay}
         </div>
-      </div>
-      <div className="flex-1 min-w-0 p-4 flex flex-col">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="min-w-0">
-            <div className="text-base font-normal text-foreground/90 leading-snug truncate">{stop.title}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">{hours}h</div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          aria-label="Remove stop"
+          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/85 backdrop-blur text-xs text-foreground/70 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+        >
+          ×
+        </button>
+        {commute && (
+          <div className="absolute bottom-2 left-2 text-[10px] inline-flex items-center gap-1 bg-background/85 backdrop-blur px-2 py-0.5 rounded-full text-foreground/75">
+            <span aria-hidden>{commute.icon}</span>
+            <span>{commute.mins}m {commute.label} from last stop</span>
           </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            aria-label="Remove stop"
-            className="w-6 h-6 rounded-full text-sm text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shrink-0"
-          >
-            ×
-          </button>
+        )}
+      </div>
+      <div className="p-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="text-sm font-normal text-foreground/90 leading-snug truncate">{stop.title}</div>
+          <div className="text-[10px] text-muted-foreground shrink-0">{hours}h</div>
         </div>
-        <ul className="space-y-1">
-          {bullets.map((b, i) => (
-            <li key={i} className="text-xs text-foreground/75 flex gap-2 leading-snug">
-              <span className="text-primary mt-0.5">·</span>
-              <span>{b}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="text-xs text-muted-foreground mt-1 line-clamp-1">{stop.note}</div>
       </div>
     </div>
   );
