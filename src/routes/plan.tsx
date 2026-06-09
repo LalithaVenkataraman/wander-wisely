@@ -289,7 +289,7 @@ function PlanPage() {
     if (!clean) return;
     const days = itinerary.days.map((d) => ({ ...d, stops: [...d.stops] }));
     const existing = days[dayIdx].stops;
-    const nextTime = existing.length === 0 ? "Morning" : existing.length === 1 ? "Midday" : existing.length === 2 ? "Afternoon" : "Evening";
+    const nextTime = existing.length <= 1 ? "morning" : existing.length === 2 ? "afternoon" : "evening";
     days[dayIdx].stops.push({
       id: `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
       title: clean,
