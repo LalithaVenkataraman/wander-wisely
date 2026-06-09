@@ -988,18 +988,19 @@ function StopDetailModal({
             <p className="text-sm text-foreground/80 leading-relaxed">{stop.note}</p>
           </div>
 
-          {/* Shorts feed — vertical scroll-snap, plays inline */}
+          {/* Shorts feed — horizontal on desktop, vertical snap on mobile */}
           <div className="px-6 pb-6">
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
-              Shorts · swipe up for more
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 md:mb-3">
+              Shorts · <span className="hidden md:inline">scroll sideways for more</span><span className="md:hidden">swipe up for more</span>
             </div>
-            <div className="h-[70vh] overflow-y-auto snap-y snap-mandatory rounded-2xl bg-black space-y-0">
+            {/* Mobile: vertical snap scroll; Desktop: horizontal snap scroll */}
+            <div className="h-[70vh] overflow-y-auto snap-y snap-mandatory rounded-2xl bg-black space-y-0 md:h-[540px] md:overflow-x-auto md:overflow-y-hidden md:snap-x md:snap-mandatory md:flex md:flex-row md:gap-3 md:rounded-2xl md:bg-black/5 md:p-3">
               {shorts.map((s, i) => (
                 <div
                   key={i}
-                  className="snap-start h-[70vh] w-full flex items-center justify-center relative"
+                  className="snap-start h-[70vh] w-full flex items-center justify-center relative md:h-[520px] md:w-[292px] md:shrink-0 md:snap-start"
                 >
-                  <div className="aspect-[9/16] h-full max-h-[70vh] bg-black relative">
+                  <div className="aspect-[9/16] h-full max-h-[70vh] bg-black relative md:h-full md:max-h-full md:w-full md:rounded-xl md:overflow-hidden">
                     <iframe
                       src={s.embed}
                       title={s.query}
