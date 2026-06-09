@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { LogoWordmark, LogoAvatar } from "@/components/Logo";
 import {
@@ -283,6 +283,23 @@ function PlanPage() {
     setItinerary({ ...itinerary, days });
   };
 
+  const addStop = (dayIdx: number, title: string) => {
+    if (!itinerary) return;
+    const clean = title.trim();
+    if (!clean) return;
+    const days = itinerary.days.map((d) => ({ ...d, stops: [...d.stops] }));
+    const existing = days[dayIdx].stops;
+    const nextTime = existing.length <= 1 ? "morning" : existing.length === 2 ? "afternoon" : "evening";
+    days[dayIdx].stops.push({
+      id: `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      title: clean,
+      note: "Added by you",
+      durationMin: 90,
+      timeOfDay: nextTime,
+    });
+    setItinerary({ ...itinerary, days });
+  };
+
   const onSave = async () => {
     if (!itinerary) return;
     const trip = saveTrip(itinerary, brief);
@@ -432,6 +449,7 @@ function PlanPage() {
               onStyle={setStyle}
               onMoveAcross={moveStopAcross}
               onRemove={removeStop}
+              onAddStop={addStop}
               onSave={onSave}
               shareUrl={shareUrl}
             />
@@ -531,6 +549,7 @@ function ItineraryView({
   onStyle,
   onMoveAcross,
   onRemove,
+  onAddStop,
   onSave,
   shareUrl,
 }: {
@@ -539,12 +558,15 @@ function ItineraryView({
   onStyle: (s: ItineraryStyle) => void;
   onMoveAcross: (fromDay: number, fromStop: number, toDay: number, toStop: number) => void;
   onRemove: (dayIdx: number, stopIdx: number) => void;
+  onAddStop: (dayIdx: number, title: string) => void;
   onSave: () => void;
   shareUrl: string | null;
 }) {
   const [tab, setTab] = useState<"days" | "stay" | "eat" | "postcards" | "reviews">("days");
   const dragRef = useRef<{ dayIdx: number; stopIdx: number } | null>(null);
   const [dragOver, setDragOver] = useState<{ dayIdx: number; stopIdx: number } | null>(null);
+  const [addingDay, setAddingDay] = useState<number | null>(null);
+  const [addText, setAddText] = useState("");
 
   // Flat list of all stops for modal prev/next navigation
   const allStops = it.days.flatMap((d, dayIdx) =>
@@ -617,7 +639,7 @@ function ItineraryView({
 
       {tab === "days" && (
         <section className="mb-12">
-          <p className="text-xs text-muted-foreground mb-4">Drag any card to reorder within a day, or drop it on another day.</p>
+          <p className="text-xs text-muted-foreground mb-4">Drag to reorder or move across days. Use “+ Add stop” to slot in your own.</p>
           <div className="space-y-6">
             {it.days.map((d, dayIdx) => {
               const total = d.stops.reduce((a, s) => a + s.durationMin, 0);
@@ -633,6 +655,12 @@ function ItineraryView({
                         </div>
                       )}
                     </div>
+                    <button
+                      onClick={() => { setAddingDay(dayIdx); setAddText(""); }}
+                      className="text-xs px-3 py-1.5 rounded-full border border-border bg-card hover:border-primary/50 cursor-pointer whitespace-nowrap"
+                    >
+                      + Add stop
+                    </button>
                   </div>
                   <div
                     onDragOver={(e) => { e.preventDefault(); }}
@@ -644,46 +672,76 @@ function ItineraryView({
                       dragRef.current = null;
                       setDragOver(null);
                     }}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-2 rounded-xl bg-muted/30 border border-dashed border-border min-h-[120px]"
+                    className="p-2 rounded-xl bg-muted/30 border border-dashed border-border min-h-[120px]"
                   >
                     {d.stops.length === 0 && (
-                      <div className="col-span-full text-sm text-muted-foreground italic px-2 py-6 text-center">
-                        Empty day. Drop a stop here or add via chat.
+                      <div className="text-sm text-muted-foreground italic px-2 py-6 text-center">
+                        Empty day. Drop a stop here, or add one above.
                       </div>
                     )}
-                    {d.stops.map((s, i) => {
-                      const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i;
-                      return (
-                        <StopCard
-                          key={s.id}
-                          stop={s}
-                          city={it.city}
-                          country={it.country}
-                          isOver={isOver}
-                          onDragStart={() => { dragRef.current = { dayIdx, stopIdx: i }; }}
-                          onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            if (!dragOver || dragOver.dayIdx !== dayIdx || dragOver.stopIdx !== i) {
-                              setDragOver({ dayIdx, stopIdx: i });
-                            }
-                          }}
-                          onDragLeave={() => {
-                            if (dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i) setDragOver(null);
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            const from = dragRef.current;
-                            if (!from) return;
-                            onMoveAcross(from.dayIdx, from.stopIdx, dayIdx, i);
-                            dragRef.current = null;
-                            setDragOver(null);
-                          }}
-                          onRemove={() => onRemove(dayIdx, i)}
-                          onExpand={() => setExpandedIndex(allStops.findIndex((x) => x.stop.id === s.id))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {d.stops.map((s, i) => {
+                        const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i;
+                        const prev = i > 0 ? d.stops[i - 1] : null;
+                        return (
+                          <Fragment key={s.id}>
+                            {prev && (
+                              <CommuteHop from={prev} to={s} />
+                            )}
+                            <StopCard
+                              stop={s}
+                              city={it.city}
+                              country={it.country}
+                              isOver={isOver}
+                              onDragStart={() => { dragRef.current = { dayIdx, stopIdx: i }; }}
+                              onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                if (!dragOver || dragOver.dayIdx !== dayIdx || dragOver.stopIdx !== i) {
+                                  setDragOver({ dayIdx, stopIdx: i });
+                                }
+                              }}
+                              onDragLeave={() => {
+                                if (dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i) setDragOver(null);
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                const from = dragRef.current;
+                                if (!from) return;
+                                onMoveAcross(from.dayIdx, from.stopIdx, dayIdx, i);
+                                dragRef.current = null;
+                                setDragOver(null);
+                              }}
+                              onRemove={() => onRemove(dayIdx, i)}
+                              onExpand={() => setExpandedIndex(allStops.findIndex((x) => x.stop.id === s.id))}
+                            />
+                          </Fragment>
+                        );
+                      })}
+                    </div>
+                    {addingDay === dayIdx ? (
+                      <form
+                        onSubmit={(e) => { e.preventDefault(); onAddStop(dayIdx, addText); setAddingDay(null); setAddText(""); }}
+                        className="mt-3 flex items-center gap-2"
+                      >
+                        <input
+                          autoFocus
+                          value={addText}
+                          onChange={(e) => setAddText(e.target.value)}
+                          placeholder="e.g. Templo Mayor museum"
+                          className="flex-1 text-sm bg-card border border-border rounded-full px-3 py-1.5 outline-none focus:border-primary"
                         />
-                      );
-                    })}
+                        <button type="submit" className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer">Add</button>
+                        <button type="button" onClick={() => setAddingDay(null)} className="text-xs px-2 py-1.5 text-muted-foreground hover:text-foreground cursor-pointer">Cancel</button>
+                      </form>
+                    ) : (
+                      <button
+                        onClick={() => { setAddingDay(dayIdx); setAddText(""); }}
+                        className="mt-3 w-full text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl py-2 cursor-pointer"
+                      >
+                        + Add a stop to day {d.day}
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -766,6 +824,36 @@ function hashStr(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return Math.abs(h);
+}
+
+function CommuteHop({
+  from,
+  to,
+}: {
+  from: { id: string; title: string };
+  to: { id: string; title: string };
+}) {
+  const seed = hashStr(from.id + "→" + to.id);
+  const modes = [
+    { icon: "🚶", label: "walk" },
+    { icon: "🚇", label: "metro" },
+    { icon: "🚕", label: "taxi" },
+    { icon: "🚌", label: "bus" },
+  ] as const;
+  const mode = modes[seed % modes.length];
+  // 5–35 min, rounded to 5
+  const mins = 5 + ((seed >> 3) % 7) * 5;
+  return (
+    <div className="sm:col-span-2 flex items-center gap-2 px-1 py-1 text-[11px] text-muted-foreground">
+      <span className="h-px flex-1 bg-border" />
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-background border border-border">
+        <span aria-hidden>{mode.icon}</span>
+        <span>~{mins} min {mode.label}</span>
+        <span className="text-foreground/40">to {to.title.length > 22 ? to.title.slice(0, 22) + "…" : to.title}</span>
+      </span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  );
 }
 
 function stopImages(stop: { id: string; title: string }, city: string, country: string, n = 6): string[] {
