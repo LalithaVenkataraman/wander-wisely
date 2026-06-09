@@ -46,8 +46,8 @@ function Home() {
       </header>
 
       <section className="flex-1 flex flex-col items-center justify-center px-6 -mt-12">
-        <h1 className="text-6xl md:text-7xl text-center text-balance mb-10 text-primary">
-          Ready to <span className="font-serif-italic text-accent">Wandr</span>?
+        <h1 className="text-6xl md:text-7xl text-center text-balance mb-10">
+          <span className="text-black">Ready to</span> <span className="font-serif-italic text-accent">Wandr</span>?
         </h1>
 
         <form
