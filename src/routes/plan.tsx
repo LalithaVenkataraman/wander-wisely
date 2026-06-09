@@ -679,7 +679,7 @@ function ItineraryView({
                         Empty day. Drop a stop here, or add one above.
                       </div>
                     )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3">
                       {d.stops.map((s, i) => {
                         const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i;
                         const prev = i > 0 ? d.stops[i - 1] : null;
