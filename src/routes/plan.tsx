@@ -643,11 +643,15 @@ function ItineraryView({
           <div className="space-y-6">
             {it.days.map((d, dayIdx) => {
               const total = d.stops.reduce((a, s) => a + s.durationMin, 0);
+              const commuteMins = d.stops.slice(1).reduce((sum, s, i) => sum + commuteFor(d.stops[i], s).mins, 0);
               return (
                 <div key={d.day}>
                   <div className="flex items-baseline justify-between mb-3">
                     <div>
-                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Day {d.day} · {Math.round(total / 60)}h</div>
+                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        Day {d.day} · {Math.round(total / 60)}h
+                        {commuteMins > 0 && <span> · {commuteMins}m getting around</span>}
+                      </div>
                       <div className="font-serif-italic text-2xl">{d.title}</div>
                       {d.theme && (
                         <div className="text-xs text-muted-foreground mt-1 max-w-md italic">
@@ -672,27 +676,25 @@ function ItineraryView({
                       dragRef.current = null;
                       setDragOver(null);
                     }}
-                    className="p-2 rounded-xl bg-muted/30 border border-dashed border-border min-h-[120px] max-w-2xl"
+                    className="p-2 rounded-xl bg-muted/30 border border-dashed border-border min-h-[120px]"
                   >
                     {d.stops.length === 0 && (
                       <div className="text-sm text-muted-foreground italic px-2 py-6 text-center">
                         Empty day. Drop a stop here, or add one above.
                       </div>
                     )}
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {d.stops.map((s, i) => {
                         const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i;
                         const prev = i > 0 ? d.stops[i - 1] : null;
                         return (
-                          <Fragment key={s.id}>
-                            {prev && (
-                              <CommuteHop from={prev} to={s} />
-                            )}
-                            <StopCard
+                          <StopCard
+                              key={s.id}
                               stop={s}
                               city={it.city}
                               country={it.country}
                               isOver={isOver}
+                              commute={prev ? commuteFor(prev, s) : null}
                               onDragStart={() => { dragRef.current = { dayIdx, stopIdx: i }; }}
                               onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
                               onDragOver={(e) => {
@@ -714,8 +716,7 @@ function ItineraryView({
                               }}
                               onRemove={() => onRemove(dayIdx, i)}
                               onExpand={() => setExpandedIndex(allStops.findIndex((x) => x.stop.id === s.id))}
-                            />
-                          </Fragment>
+                          />
                         );
                       })}
                     </div>
