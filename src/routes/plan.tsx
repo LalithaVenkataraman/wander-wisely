@@ -449,6 +449,7 @@ function PlanPage() {
               onStyle={setStyle}
               onMoveAcross={moveStopAcross}
               onRemove={removeStop}
+              onAddStop={addStop}
               onSave={onSave}
               shareUrl={shareUrl}
             />
