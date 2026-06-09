@@ -672,7 +672,7 @@ function ItineraryView({
                       dragRef.current = null;
                       setDragOver(null);
                     }}
-                    className="p-2 rounded-xl bg-muted/30 border border-dashed border-border min-h-[120px]"
+                    className="p-2 rounded-xl bg-muted/30 border border-dashed border-border min-h-[120px] max-w-2xl"
                   >
                     {d.stops.length === 0 && (
                       <div className="text-sm text-muted-foreground italic px-2 py-6 text-center">
