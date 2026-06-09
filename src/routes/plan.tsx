@@ -683,7 +683,7 @@ function ItineraryView({
                         Empty day. Drop a stop here, or add one above.
                       </div>
                     )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                       {d.stops.map((s, i) => {
                         const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i;
                         const prev = i > 0 ? d.stops[i - 1] : null;
@@ -879,7 +879,7 @@ function StopCard({
         isOver ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"
       }`}
     >
-      <div className="aspect-[16/10] bg-muted relative">
+      <div className="aspect-[3/2] bg-muted relative">
         <img
           src={img}
           alt=""
@@ -890,29 +890,29 @@ function StopCard({
             e.currentTarget.style.display = "none";
           }}
         />
-        <div className="absolute top-2 left-2 text-[10px] uppercase tracking-widest bg-background/85 backdrop-blur px-2 py-0.5 rounded-full text-foreground/80">
+        <div className="absolute top-2.5 left-2.5 text-[10px] uppercase tracking-widest bg-background/85 backdrop-blur px-2.5 py-1 rounded-full text-foreground/80">
           {stop.timeOfDay}
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
           aria-label="Remove stop"
-          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/85 backdrop-blur text-xs text-foreground/70 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+          className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-background/85 backdrop-blur text-xs text-foreground/70 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
         >
           ×
         </button>
         {commute && (
-          <div className="absolute bottom-2 left-2 text-[10px] inline-flex items-center gap-1 bg-background/85 backdrop-blur px-2 py-0.5 rounded-full text-foreground/75">
+          <div className="absolute bottom-2.5 left-2.5 text-[11px] inline-flex items-center gap-1 bg-background/85 backdrop-blur px-2.5 py-1 rounded-full text-foreground/75">
             <span aria-hidden>{commute.icon}</span>
             <span>{commute.mins}m {commute.label} from last stop</span>
           </div>
         )}
       </div>
-      <div className="p-3">
+      <div className="p-4">
         <div className="flex items-baseline justify-between gap-2">
-          <div className="text-sm font-normal text-foreground/90 leading-snug truncate">{stop.title}</div>
-          <div className="text-[10px] text-muted-foreground shrink-0">{hours}h</div>
+          <div className="text-base font-normal text-foreground/90 leading-snug truncate">{stop.title}</div>
+          <div className="text-[11px] text-muted-foreground shrink-0">{hours}h</div>
         </div>
-        <div className="text-xs text-muted-foreground mt-1 line-clamp-1">{stop.note}</div>
+        <div className="text-sm text-muted-foreground mt-1.5 line-clamp-1">{stop.note}</div>
       </div>
     </div>
   );
