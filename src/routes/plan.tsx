@@ -880,13 +880,14 @@ function stopBullets(stop: { id: string; title: string; note: string; durationMi
 }
 
 function StopCard({
-  stop, city, country, isOver,
+  stop, city, country, isOver, commute,
   onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onRemove, onExpand,
 }: {
   stop: { id: string; title: string; note: string; durationMin: number; timeOfDay: string };
   city: string;
   country: string;
   isOver: boolean;
+  commute: Commute | null;
   onDragStart: () => void;
   onDragEnd: () => void;
   onDragOver: (e: React.DragEvent) => void;
@@ -896,7 +897,6 @@ function StopCard({
   onExpand: () => void;
 }) {
   const img = stopImages(stop, city, country, 1)[0];
-  const bullets = stopBullets(stop);
   const hours = Math.round((stop.durationMin / 60) * 10) / 10;
   return (
     <div
@@ -907,16 +907,16 @@ function StopCard({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       onClick={onExpand}
-      className={`group relative flex bg-card border rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all ${
+      className={`group relative bg-card border rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all ${
         isOver ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"
       }`}
     >
-      <div className="relative w-40 sm:w-52 shrink-0 bg-muted">
+      <div className="aspect-[16/10] bg-muted relative">
         <img
           src={img}
           alt=""
           loading="lazy"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="w-full h-full object-cover"
           onError={(e) => {
             (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br", "from-primary/20", "to-muted");
             e.currentTarget.style.display = "none";
@@ -925,29 +925,26 @@ function StopCard({
         <div className="absolute top-2 left-2 text-[10px] uppercase tracking-widest bg-background/85 backdrop-blur px-2 py-0.5 rounded-full text-foreground/80">
           {stop.timeOfDay}
         </div>
-      </div>
-      <div className="flex-1 min-w-0 p-4 flex flex-col">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="min-w-0">
-            <div className="text-base font-normal text-foreground/90 leading-snug truncate">{stop.title}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">{hours}h</div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          aria-label="Remove stop"
+          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/85 backdrop-blur text-xs text-foreground/70 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+        >
+          ×
+        </button>
+        {commute && (
+          <div className="absolute bottom-2 left-2 text-[10px] inline-flex items-center gap-1 bg-background/85 backdrop-blur px-2 py-0.5 rounded-full text-foreground/75">
+            <span aria-hidden>{commute.icon}</span>
+            <span>{commute.mins}m {commute.label} from last stop</span>
           </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            aria-label="Remove stop"
-            className="w-6 h-6 rounded-full text-sm text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shrink-0"
-          >
-            ×
-          </button>
+        )}
+      </div>
+      <div className="p-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="text-sm font-normal text-foreground/90 leading-snug truncate">{stop.title}</div>
+          <div className="text-[10px] text-muted-foreground shrink-0">{hours}h</div>
         </div>
-        <ul className="space-y-1">
-          {bullets.map((b, i) => (
-            <li key={i} className="text-xs text-foreground/75 flex gap-2 leading-snug">
-              <span className="text-primary mt-0.5">·</span>
-              <span>{b}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="text-xs text-muted-foreground mt-1 line-clamp-1">{stop.note}</div>
       </div>
     </div>
   );
