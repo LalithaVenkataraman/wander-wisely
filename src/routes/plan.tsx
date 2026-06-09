@@ -639,7 +639,7 @@ function ItineraryView({
 
       {tab === "days" && (
         <section className="mb-12">
-          <p className="text-xs text-muted-foreground mb-4">Drag any card to reorder within a day, or drop it on another day.</p>
+          <p className="text-xs text-muted-foreground mb-4">Drag to reorder or move across days. Use “+ Add stop” to slot in your own.</p>
           <div className="space-y-6">
             {it.days.map((d, dayIdx) => {
               const total = d.stops.reduce((a, s) => a + s.durationMin, 0);
@@ -655,6 +655,12 @@ function ItineraryView({
                         </div>
                       )}
                     </div>
+                    <button
+                      onClick={() => { setAddingDay(dayIdx); setAddText(""); }}
+                      className="text-xs px-3 py-1.5 rounded-full border border-border bg-card hover:border-primary/50 cursor-pointer whitespace-nowrap"
+                    >
+                      + Add stop
+                    </button>
                   </div>
                   <div
                     onDragOver={(e) => { e.preventDefault(); }}
@@ -666,46 +672,76 @@ function ItineraryView({
                       dragRef.current = null;
                       setDragOver(null);
                     }}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-2 rounded-xl bg-muted/30 border border-dashed border-border min-h-[120px]"
+                    className="p-2 rounded-xl bg-muted/30 border border-dashed border-border min-h-[120px]"
                   >
                     {d.stops.length === 0 && (
-                      <div className="col-span-full text-sm text-muted-foreground italic px-2 py-6 text-center">
-                        Empty day. Drop a stop here or add via chat.
+                      <div className="text-sm text-muted-foreground italic px-2 py-6 text-center">
+                        Empty day. Drop a stop here, or add one above.
                       </div>
                     )}
-                    {d.stops.map((s, i) => {
-                      const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i;
-                      return (
-                        <StopCard
-                          key={s.id}
-                          stop={s}
-                          city={it.city}
-                          country={it.country}
-                          isOver={isOver}
-                          onDragStart={() => { dragRef.current = { dayIdx, stopIdx: i }; }}
-                          onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            if (!dragOver || dragOver.dayIdx !== dayIdx || dragOver.stopIdx !== i) {
-                              setDragOver({ dayIdx, stopIdx: i });
-                            }
-                          }}
-                          onDragLeave={() => {
-                            if (dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i) setDragOver(null);
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            const from = dragRef.current;
-                            if (!from) return;
-                            onMoveAcross(from.dayIdx, from.stopIdx, dayIdx, i);
-                            dragRef.current = null;
-                            setDragOver(null);
-                          }}
-                          onRemove={() => onRemove(dayIdx, i)}
-                          onExpand={() => setExpandedIndex(allStops.findIndex((x) => x.stop.id === s.id))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {d.stops.map((s, i) => {
+                        const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i;
+                        const prev = i > 0 ? d.stops[i - 1] : null;
+                        return (
+                          <Fragment key={s.id}>
+                            {prev && (
+                              <CommuteHop from={prev} to={s} />
+                            )}
+                            <StopCard
+                              stop={s}
+                              city={it.city}
+                              country={it.country}
+                              isOver={isOver}
+                              onDragStart={() => { dragRef.current = { dayIdx, stopIdx: i }; }}
+                              onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                if (!dragOver || dragOver.dayIdx !== dayIdx || dragOver.stopIdx !== i) {
+                                  setDragOver({ dayIdx, stopIdx: i });
+                                }
+                              }}
+                              onDragLeave={() => {
+                                if (dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i) setDragOver(null);
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                const from = dragRef.current;
+                                if (!from) return;
+                                onMoveAcross(from.dayIdx, from.stopIdx, dayIdx, i);
+                                dragRef.current = null;
+                                setDragOver(null);
+                              }}
+                              onRemove={() => onRemove(dayIdx, i)}
+                              onExpand={() => setExpandedIndex(allStops.findIndex((x) => x.stop.id === s.id))}
+                            />
+                          </Fragment>
+                        );
+                      })}
+                    </div>
+                    {addingDay === dayIdx ? (
+                      <form
+                        onSubmit={(e) => { e.preventDefault(); onAddStop(dayIdx, addText); setAddingDay(null); setAddText(""); }}
+                        className="mt-3 flex items-center gap-2"
+                      >
+                        <input
+                          autoFocus
+                          value={addText}
+                          onChange={(e) => setAddText(e.target.value)}
+                          placeholder="e.g. Templo Mayor museum"
+                          className="flex-1 text-sm bg-card border border-border rounded-full px-3 py-1.5 outline-none focus:border-primary"
                         />
-                      );
-                    })}
+                        <button type="submit" className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer">Add</button>
+                        <button type="button" onClick={() => setAddingDay(null)} className="text-xs px-2 py-1.5 text-muted-foreground hover:text-foreground cursor-pointer">Cancel</button>
+                      </form>
+                    ) : (
+                      <button
+                        onClick={() => { setAddingDay(dayIdx); setAddText(""); }}
+                        className="mt-3 w-full text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl py-2 cursor-pointer"
+                      >
+                        + Add a stop to day {d.day}
+                      </button>
+                    )}
                   </div>
                 </div>
               );
