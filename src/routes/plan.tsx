@@ -549,6 +549,7 @@ function ItineraryView({
   onStyle,
   onMoveAcross,
   onRemove,
+  onAddStop,
   onSave,
   shareUrl,
 }: {
@@ -557,6 +558,7 @@ function ItineraryView({
   onStyle: (s: ItineraryStyle) => void;
   onMoveAcross: (fromDay: number, fromStop: number, toDay: number, toStop: number) => void;
   onRemove: (dayIdx: number, stopIdx: number) => void;
+  onAddStop: (dayIdx: number, title: string) => void;
   onSave: () => void;
   shareUrl: string | null;
 }) {
