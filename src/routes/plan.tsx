@@ -257,6 +257,18 @@ function PlanPage() {
   const paceToStyle = (pace?: string): ItineraryStyle =>
     pace === "Mindful" ? "mindful" : pace === "Pack it in" ? "max" : "balanced";
 
+  const parseDuration = (d?: string): number | undefined => {
+    if (!d) return undefined;
+    const s = d.toLowerCase();
+    const weeks = s.match(/(\d+)\s*week/);
+    if (weeks) return Math.min(10, Math.max(2, parseInt(weeks[1], 10) * 7));
+    const days = s.match(/(\d+)\s*day/) ?? s.match(/^(\d+)$/);
+    if (days) return Math.min(10, Math.max(2, parseInt(days[1], 10)));
+    if (s.includes("week")) return 7;
+    if (s.includes("weekend")) return 3;
+    return undefined;
+  };
+
   const setStyle = (style: ItineraryStyle) => {
     if (!itinerary) return;
     const card: DestinationCard = {
