@@ -105,13 +105,14 @@ function PlanPage() {
   const runItinerary = async (card: DestinationCard, style: ItineraryStyle, refinement?: string, current?: Itinerary) => {
     setThinking(true);
     try {
+      const briefDays = parseDuration(briefRef.current.duration);
       const r = await act({ data: {
         mode: "itinerary",
         brief: briefRef.current,
         history: chatRef.current,
         currentCity: card.city,
         currentCountry: card.country,
-        days: current?.durationDays ?? 4,
+        days: current?.durationDays ?? briefDays ?? 4,
         style,
         currentItinerary: current,
         refinement,
