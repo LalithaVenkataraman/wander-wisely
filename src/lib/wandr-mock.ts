@@ -3,6 +3,7 @@ export type TripBrief = {
   who?: string;
   budget?: string;
   pace?: string;
+  duration?: string;
 };
 
 export type Caveat = "steep" | "lots-of-walking" | "hot" | "long-transfers";

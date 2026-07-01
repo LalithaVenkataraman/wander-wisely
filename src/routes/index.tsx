@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { getRandomSuggestions } from "@/lib/wandr-mock";
 import { LogoWordmark } from "@/components/Logo";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,6 +18,7 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [prompt, setPrompt] = useState("");
   const [chips, setChips] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -41,13 +42,20 @@ function Home() {
 
   return (
     <main className="min-h-screen flex flex-col bg-background text-foreground">
-      <header className="px-8 pt-8">
+      <header className="px-8 pt-8 flex items-center justify-between">
         <LogoWordmark size={72} className="text-4xl gap-3" />
+        <nav className="flex items-center gap-4 text-sm">
+          {user ? (
+            <Link to="/dashboard" className="text-muted-foreground hover:text-foreground">My trips</Link>
+          ) : (
+            <Link to="/auth" className="text-muted-foreground hover:text-foreground">Sign in</Link>
+          )}
+        </nav>
       </header>
 
       <section className="flex-1 flex flex-col items-center justify-center px-6 -mt-12">
-        <h1 className="text-6xl md:text-7xl text-center text-balance mb-10 text-primary">
-          Ready to <span className="font-serif-italic text-accent">Wandr</span>?
+        <h1 className="text-6xl md:text-7xl text-center text-balance mb-10">
+          <span className="text-black">Ready to</span> <span className="font-serif-italic text-accent">Wandr</span>?
         </h1>
 
         <form
