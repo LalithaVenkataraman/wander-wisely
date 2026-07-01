@@ -297,20 +297,56 @@ function TagChips({
   const presets = rating === 1 ? POSITIVE_TAGS : NEGATIVE_TAGS;
   const toggle = (t: string) =>
     onChange(tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t]);
+  const customTags = tags.filter((t) => !POSITIVE_TAGS.includes(t) && !NEGATIVE_TAGS.includes(t));
+  const [draft, setDraft] = useState("");
+  const addCustom = () => {
+    const v = draft.trim().toLowerCase();
+    if (!v || tags.includes(v)) {
+      setDraft("");
+      return;
+    }
+    onChange([...tags, v]);
+    setDraft("");
+  };
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {presets.map((t) => {
-        const on = tags.includes(t);
-        return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap gap-1.5">
+        {presets.map((t) => {
+          const on = tags.includes(t);
+          return (
+            <button
+              key={t}
+              onClick={() => toggle(t)}
+              className={`px-2.5 py-0.5 rounded-full text-[11px] border transition cursor-pointer ${on ? "bg-foreground text-background border-foreground" : "border-border/70 text-muted-foreground hover:border-foreground/40 hover:text-foreground"}`}
+            >
+              {t}
+            </button>
+          );
+        })}
+        {customTags.map((t) => (
           <button
             key={t}
             onClick={() => toggle(t)}
-            className={`px-2.5 py-0.5 rounded-full text-[11px] border transition cursor-pointer ${on ? "bg-foreground text-background border-foreground" : "border-border/70 text-muted-foreground hover:border-foreground/40 hover:text-foreground"}`}
+            className="px-2.5 py-0.5 rounded-full text-[11px] border border-accent/60 bg-accent/15 text-foreground cursor-pointer"
+            title="Click to remove"
           >
-            {t}
+            {t} ✕
           </button>
-        );
-      })}
+        ))}
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === ",") {
+              e.preventDefault();
+              addCustom();
+            }
+          }}
+          onBlur={addCustom}
+          placeholder="+ add tag"
+          className="px-2.5 py-0.5 rounded-full text-[11px] border border-dashed border-border/70 bg-transparent outline-none focus:border-foreground/40 min-w-[80px] w-[100px]"
+        />
+      </div>
     </div>
   );
 }
