@@ -71,7 +71,7 @@ export async function saveOutput(
   if (!u.user) return null;
   const { data, error } = await supabase
     .from("wandr_outputs")
-    .insert({ user_id: u.user.id, trip_id: tripId, kind, label, payload })
+    .insert({ user_id: u.user.id, trip_id: tripId, kind, label, payload: payload as never })
     .select()
     .single();
   if (error) {
