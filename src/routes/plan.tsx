@@ -15,6 +15,9 @@ import {
 } from "@/lib/wandr-mock";
 import { wandrAct } from "@/lib/wandr-ai.functions";
 import { getPostcards } from "@/lib/postcards";
+import { createTrip, updateTripBrief, saveOutput } from "@/lib/wandr-history";
+import { useAuth } from "@/hooks/useAuth";
+import { Link } from "@tanstack/react-router";
 
 const searchSchema = z.object({ q: z.string().optional() });
 
@@ -58,6 +61,9 @@ function PlanPage() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const briefRef = useRef<TripBrief>({});
   const chatRef = useRef<ChatMsg[]>([]);
+  const tripIdRef = useRef<string | null>(null);
+  const savedOutputSigRef = useRef<Set<string>>(new Set());
+  const { user } = useAuth();
   useEffect(() => { briefRef.current = brief; }, [brief]);
   useEffect(() => { chatRef.current = chat; }, [chat]);
 
@@ -141,6 +147,38 @@ function PlanPage() {
     runPreview(initialPrompt);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Create a trip row once the user is signed in (and update brief as it grows).
+  useEffect(() => {
+    if (!user) return;
+    const initialPrompt = q ?? (typeof window !== "undefined" ? sessionStorage.getItem("wandr:prompt") ?? "" : "");
+    if (!initialPrompt) return;
+    if (tripIdRef.current) {
+      updateTripBrief(tripIdRef.current, briefRef.current);
+      return;
+    }
+    createTrip(initialPrompt, briefRef.current).then((t) => {
+      if (t) tripIdRef.current = t.id;
+    });
+  }, [user, q, brief]);
+
+  // Save committed shortlist outputs (skip live-preview refreshes).
+  useEffect(() => {
+    if (!user || !tripIdRef.current || previewMode || !pane || pane.cards.length === 0) return;
+    const sig = `shortlist:${pane.cards.map((c) => c.id).join(",")}`;
+    if (savedOutputSigRef.current.has(sig)) return;
+    savedOutputSigRef.current.add(sig);
+    saveOutput(tripIdRef.current, "shortlist", pane.label, { cards: pane.cards });
+  }, [user, pane, previewMode]);
+
+  // Save the itinerary each time a fresh one lands.
+  useEffect(() => {
+    if (!user || !tripIdRef.current || !itinerary) return;
+    const sig = `itinerary:${itinerary.id}:${itinerary.durationDays}:${itinerary.days.map((d) => d.stops.map((s) => s.title).join("|")).join("/")}`;
+    if (savedOutputSigRef.current.has(sig)) return;
+    savedOutputSigRef.current.add(sig);
+    saveOutput(tripIdRef.current, "itinerary", `${itinerary.city}${itinerary.country ? `, ${itinerary.country}` : ""}`, { itinerary });
+  }, [user, itinerary]);
 
   const runIntake = async (prompt: string) => {
     setThinking(true);
@@ -333,9 +371,16 @@ function PlanPage() {
       <aside className="w-[380px] shrink-0 border-r border-border flex flex-col bg-card">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <LogoWordmark size={56} className="text-3xl gap-2.5" />
-          <button onClick={startOver} className="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
-            Start over
-          </button>
+          <div className="flex items-center gap-3 text-xs">
+            {user ? (
+              <Link to="/dashboard" className="text-muted-foreground hover:text-foreground">My trips</Link>
+            ) : (
+              <Link to="/auth" className="text-muted-foreground hover:text-foreground">Sign in</Link>
+            )}
+            <button onClick={startOver} className="text-muted-foreground hover:text-foreground cursor-pointer">
+              Start over
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
