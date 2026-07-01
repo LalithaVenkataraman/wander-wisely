@@ -15,6 +15,9 @@ import {
 } from "@/lib/wandr-mock";
 import { wandrAct } from "@/lib/wandr-ai.functions";
 import { getPostcards } from "@/lib/postcards";
+import { createTrip, updateTripBrief, saveOutput } from "@/lib/wandr-history";
+import { useAuth } from "@/hooks/useAuth";
+import { Link } from "@tanstack/react-router";
 
 const searchSchema = z.object({ q: z.string().optional() });
 
@@ -58,6 +61,9 @@ function PlanPage() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const briefRef = useRef<TripBrief>({});
   const chatRef = useRef<ChatMsg[]>([]);
+  const tripIdRef = useRef<string | null>(null);
+  const savedOutputSigRef = useRef<Set<string>>(new Set());
+  const { user } = useAuth();
   useEffect(() => { briefRef.current = brief; }, [brief]);
   useEffect(() => { chatRef.current = chat; }, [chat]);
 
