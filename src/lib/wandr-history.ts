@@ -43,7 +43,7 @@ export async function createTrip(initialPrompt: string, brief: TripBrief) {
   if (!u.user) return null;
   const { data, error } = await supabase
     .from("wandr_trips")
-    .insert({ user_id: u.user.id, initial_prompt: initialPrompt, brief })
+    .insert({ user_id: u.user.id, initial_prompt: initialPrompt, brief: brief as never })
     .select()
     .single();
   if (error) {
@@ -56,7 +56,7 @@ export async function createTrip(initialPrompt: string, brief: TripBrief) {
 export async function updateTripBrief(tripId: string, brief: TripBrief) {
   const { error } = await supabase
     .from("wandr_trips")
-    .update({ brief })
+    .update({ brief: brief as never })
     .eq("id", tripId);
   if (error) console.warn("updateTripBrief", error);
 }
