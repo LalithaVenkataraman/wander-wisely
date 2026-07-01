@@ -93,6 +93,47 @@ export type Database = {
           },
         ]
       }
+      wandr_trip_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          rating: number
+          tags: string[]
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          rating: number
+          tags?: string[]
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          rating?: number
+          tags?: string[]
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wandr_trip_ratings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "wandr_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wandr_trips: {
         Row: {
           brief: Json

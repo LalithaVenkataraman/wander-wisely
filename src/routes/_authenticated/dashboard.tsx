@@ -6,6 +6,7 @@ import {
   listMyTrips,
   listTripOutputs,
   upsertRating,
+  upsertTripRating,
   POSITIVE_TAGS,
   NEGATIVE_TAGS,
   type StoredOutput,
@@ -56,6 +57,10 @@ function Dashboard() {
     }));
   };
 
+  const onTripRated = (tripId: string, patch: StoredTrip["rating"]) => {
+    setTrips((cur) => cur.map((t) => (t.id === tripId ? { ...t, rating: patch } : t)));
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     window.location.href = "/";
@@ -65,6 +70,7 @@ function Dashboard() {
   const outputs = selectedTripId ? outputsByTrip[selectedTripId] ?? [] : [];
   const grouped = useMemo(() => groupOutputs(outputs), [outputs]);
   const selectedOutput = outputs.find((o) => o.id === selectedOutputId) ?? null;
+  const briefSelected = !!selectedTrip && selectedOutputId === `__meta__${selectedTrip.id}`;
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -133,6 +139,10 @@ function Dashboard() {
                   trip={selectedTrip}
                   isSelected={selectedOutputId === `__meta__${selectedTrip.id}`}
                   onSelect={() => setSelectedOutputId(`__meta__${selectedTrip.id}`)}
+                  onQuickRate={async (r) => {
+                    const saved = await upsertTripRating(selectedTrip.id, r, selectedTrip.rating?.tags ?? [], selectedTrip.rating?.note ?? null);
+                    if (saved) onTripRated(selectedTrip.id, { rating: r, tags: selectedTrip.rating?.tags ?? [], note: selectedTrip.rating?.note ?? null });
+                  }}
                 />
               )}
 
@@ -142,6 +152,10 @@ function Dashboard() {
                 items={grouped.initialShortlists}
                 selectedId={selectedOutputId}
                 onSelect={setSelectedOutputId}
+                onQuickRate={async (o, r) => {
+                  const saved = await upsertRating(o.id, r, o.rating?.tags ?? [], o.rating?.note ?? null);
+                  if (saved) onRated(selectedTripId!, o.id, { rating: r, tags: o.rating?.tags ?? [], note: o.rating?.note ?? null });
+                }}
               />
               <OutputGroup
                 title="Refined recommendations"
@@ -149,6 +163,10 @@ function Dashboard() {
                 items={grouped.refinedShortlists}
                 selectedId={selectedOutputId}
                 onSelect={setSelectedOutputId}
+                onQuickRate={async (o, r) => {
+                  const saved = await upsertRating(o.id, r, o.rating?.tags ?? [], o.rating?.note ?? null);
+                  if (saved) onRated(selectedTripId!, o.id, { rating: r, tags: o.rating?.tags ?? [], note: o.rating?.note ?? null });
+                }}
               />
               <OutputGroup
                 title="Itineraries"
@@ -156,6 +174,10 @@ function Dashboard() {
                 items={grouped.itineraries}
                 selectedId={selectedOutputId}
                 onSelect={setSelectedOutputId}
+                onQuickRate={async (o, r) => {
+                  const saved = await upsertRating(o.id, r, o.rating?.tags ?? [], o.rating?.note ?? null);
+                  if (saved) onRated(selectedTripId!, o.id, { rating: r, tags: o.rating?.tags ?? [], note: o.rating?.note ?? null });
+                }}
               />
 
               {selectedTrip && outputs.length === 0 && (
@@ -167,8 +189,12 @@ function Dashboard() {
 
             {/* Column 3 — rating panel */}
             <aside className="lg:sticky lg:top-6 self-start">
-              {selectedOutputId?.startsWith("__meta__") && selectedTrip ? (
-                <MetadataRating trip={selectedTrip} />
+              {briefSelected && selectedTrip ? (
+                <TripBriefRatingPanel
+                  key={selectedTrip.id}
+                  trip={selectedTrip}
+                  onRated={(p) => onTripRated(selectedTrip.id, p)}
+                />
               ) : selectedOutput ? (
                 <RatingPanel
                   key={selectedOutput.id}
@@ -177,7 +203,7 @@ function Dashboard() {
                 />
               ) : (
                 <div className="border border-dashed border-border rounded-2xl p-6 text-sm text-muted-foreground">
-                  Pick a conversation turn to rate it.
+                  Pick an item to add tags or a note. Thumbs save instantly.
                 </div>
               )}
             </aside>
@@ -204,12 +230,14 @@ function OutputGroup({
   items,
   selectedId,
   onSelect,
+  onQuickRate,
 }: {
   title: string;
   subtitle: string;
   items: StoredOutput[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onQuickRate: (o: StoredOutput, r: 1 | -1) => void;
 }) {
   if (items.length === 0) return null;
   return (
@@ -224,12 +252,11 @@ function OutputGroup({
           const s = summarizeOutput(o);
           return (
             <li key={o.id}>
-              <button
-                onClick={() => onSelect(o.id)}
-                className={`w-full text-left border rounded-xl px-4 py-3 transition cursor-pointer ${active ? "border-primary bg-primary/5" : "border-border bg-card hover:border-foreground/30"}`}
+              <div
+                className={`w-full border rounded-xl px-4 py-3 transition ${active ? "border-primary bg-primary/5" : "border-border bg-card hover:border-foreground/30"}`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <button onClick={() => onSelect(o.id)} className="min-w-0 text-left flex-1 cursor-pointer">
                     <div className="text-sm">
                       {items.length > 1 && (
                         <span className="text-muted-foreground mr-1.5">v{i + 1}</span>
@@ -237,10 +264,13 @@ function OutputGroup({
                       {o.label ?? s.title}
                     </div>
                     <div className="text-xs text-muted-foreground truncate">{s.subtitle}</div>
-                  </div>
-                  <RatingBadge rating={o.rating?.rating ?? null} />
+                  </button>
+                  <InlineThumbs
+                    rating={o.rating?.rating ?? null}
+                    onRate={(r) => onQuickRate(o, r)}
+                  />
                 </div>
-              </button>
+              </div>
             </li>
           );
         })}
@@ -249,20 +279,43 @@ function OutputGroup({
   );
 }
 
-function RatingBadge({ rating }: { rating: 1 | -1 | null }) {
-  if (rating === 1) return <span className="text-xs shrink-0">👍</span>;
-  if (rating === -1) return <span className="text-xs shrink-0">👎</span>;
-  return <span className="text-[11px] text-muted-foreground shrink-0">unrated</span>;
+function InlineThumbs({
+  rating,
+  onRate,
+}: {
+  rating: 1 | -1 | null;
+  onRate: (r: 1 | -1) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => onRate(1)}
+        className={`w-7 h-7 rounded-full text-xs border transition cursor-pointer ${rating === 1 ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+        aria-label="Thumbs up"
+      >
+        👍
+      </button>
+      <button
+        onClick={() => onRate(-1)}
+        className={`w-7 h-7 rounded-full text-xs border transition cursor-pointer ${rating === -1 ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
+        aria-label="Thumbs down"
+      >
+        👎
+      </button>
+    </div>
+  );
 }
 
 function MetadataSection({
   trip,
   isSelected,
   onSelect,
+  onQuickRate,
 }: {
   trip: StoredTrip;
   isSelected: boolean;
   onSelect: () => void;
+  onQuickRate: (r: 1 | -1) => void;
 }) {
   const fields: Array<[string, string | undefined]> = [
     ["when", trip.brief?.when],
@@ -278,35 +331,124 @@ function MetadataSection({
         <h3 className="text-sm uppercase tracking-wide text-muted-foreground">Trip brief</h3>
         <span className="text-[11px] text-muted-foreground/80">Did Wandr capture the essentials?</span>
       </div>
-      <button
-        onClick={onSelect}
-        className={`w-full text-left border rounded-xl px-4 py-3 transition cursor-pointer ${isSelected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-foreground/30"}`}
+      <div
+        className={`w-full border rounded-xl px-4 py-3 transition ${isSelected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-foreground/30"}`}
       >
-        <div className="text-sm mb-2 line-clamp-2">"{trip.initial_prompt}"</div>
-        {captured.length ? (
-          <div className="flex flex-wrap gap-1.5">
-            {captured.map(([k, v]) => (
-              <span key={k} className="text-[11px] rounded-full bg-muted px-2 py-0.5">
-                <span className="text-muted-foreground">{k}:</span> {v}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <div className="text-[11px] text-muted-foreground">No metadata captured yet.</div>
-        )}
-      </button>
+        <div className="flex items-start justify-between gap-3">
+          <button onClick={onSelect} className="text-left flex-1 min-w-0 cursor-pointer">
+            <div className="text-sm mb-2 line-clamp-2">"{trip.initial_prompt}"</div>
+            {captured.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {captured.map(([k, v]) => (
+                  <span key={k} className="text-[11px] rounded-full bg-muted px-2 py-0.5">
+                    <span className="text-muted-foreground">{k}:</span> {v}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="text-[11px] text-muted-foreground">No metadata captured yet.</div>
+            )}
+          </button>
+          <InlineThumbs rating={trip.rating?.rating ?? null} onRate={onQuickRate} />
+        </div>
+      </div>
     </div>
   );
 }
 
-function MetadataRating({ trip }: { trip: StoredTrip }) {
+function TripBriefRatingPanel({
+  trip,
+  onRated,
+}: {
+  trip: StoredTrip;
+  onRated: (r: StoredTrip["rating"]) => void;
+}) {
+  const [rating, setRating] = useState<1 | -1 | null>(trip.rating?.rating ?? null);
+  const [tags, setTags] = useState<string[]>(trip.rating?.tags ?? []);
+  const [note, setNote] = useState(trip.rating?.note ?? "");
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  const presets = rating === 1 ? POSITIVE_TAGS : rating === -1 ? NEGATIVE_TAGS : [];
+  const toggleTag = (t: string) =>
+    setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
+
+  const save = async (nextRating: 1 | -1) => {
+    setSaving(true);
+    const r = await upsertTripRating(trip.id, nextRating, tags, note.trim() || null);
+    setSaving(false);
+    if (r) {
+      setSavedAt(Date.now());
+      onRated({ rating: nextRating, tags, note: note.trim() || null });
+    }
+  };
+  const saveTagsNote = async () => {
+    if (!rating) return;
+    setSaving(true);
+    const r = await upsertTripRating(trip.id, rating, tags, note.trim() || null);
+    setSaving(false);
+    if (r) {
+      setSavedAt(Date.now());
+      onRated({ rating, tags, note: note.trim() || null });
+    }
+  };
+
   return (
-    <div className="border border-border rounded-2xl bg-card p-4">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Trip brief</div>
-      <div className="text-sm mb-3">Rating for brief capture lives on the specific outputs Wandr produced from it. Pick a shortlist or itinerary on the left to rate.</div>
-      <div className="text-xs text-muted-foreground">
-        Tip: use tags like "missing info" or "wrong budget" on the recommendation cards to flag intake gaps.
+    <div className="border border-border rounded-2xl p-4 bg-card">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Trip brief</div>
+          <div className="text-base">Did Wandr capture the essentials?</div>
+          <div className="text-xs text-muted-foreground mt-0.5">when · who · budget · pace · vibe</div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => { setRating(1); save(1); }}
+            className={`w-9 h-9 rounded-full border transition ${rating === 1 ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+            aria-label="Thumbs up"
+          >👍</button>
+          <button
+            onClick={() => { setRating(-1); save(-1); }}
+            className={`w-9 h-9 rounded-full border transition ${rating === -1 ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
+            aria-label="Thumbs down"
+          >👎</button>
+        </div>
       </div>
+
+      {rating ? (
+        <div className="space-y-3">
+          <div>
+            <div className="text-xs text-muted-foreground mb-1.5">
+              {rating === 1 ? "What worked?" : "What went wrong?"}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {presets.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => toggleTag(t)}
+                  className={`px-2.5 py-1 rounded-full text-xs border transition cursor-pointer ${tags.includes(t) ? "bg-foreground text-background border-foreground" : "border-border hover:border-foreground/40"}`}
+                >{t}</button>
+              ))}
+            </div>
+          </div>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Anything else? (optional)"
+            className="w-full text-sm rounded-md border border-border bg-transparent p-2 min-h-[60px] focus:outline-none focus:border-primary"
+          />
+          <div className="flex items-center justify-between">
+            <button
+              onClick={saveTagsNote}
+              disabled={saving}
+              className="text-sm bg-primary text-primary-foreground rounded-full px-4 py-1.5 hover:opacity-90 disabled:opacity-60 cursor-pointer"
+            >{saving ? "Saving…" : "Save feedback"}</button>
+            {savedAt && <span className="text-xs text-muted-foreground">Saved ✓</span>}
+          </div>
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground">Thumbs up or down to add tags and a note.</div>
+      )}
     </div>
   );
 }
