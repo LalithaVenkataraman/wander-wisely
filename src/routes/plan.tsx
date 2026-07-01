@@ -174,7 +174,7 @@ function PlanPage() {
   // Save the itinerary each time a fresh one lands.
   useEffect(() => {
     if (!user || !tripIdRef.current || !itinerary) return;
-    const sig = `itinerary:${itinerary.id}:${itinerary.durationDays}:${itinerary.days.map((d) => d.stops.map((s) => s.name).join("|")).join("/")}`;
+    const sig = `itinerary:${itinerary.id}:${itinerary.durationDays}:${itinerary.days.map((d) => d.stops.map((s) => s.title).join("|")).join("/")}`;
     if (savedOutputSigRef.current.has(sig)) return;
     savedOutputSigRef.current.add(sig);
     saveOutput(tripIdRef.current, "itinerary", `${itinerary.city}${itinerary.country ? `, ${itinerary.country}` : ""}`, { itinerary });
