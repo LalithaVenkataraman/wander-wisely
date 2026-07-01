@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LogoWordmark } from "@/components/Logo";
 import {
@@ -19,7 +19,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function Dashboard() {
   const [trips, setTrips] = useState<StoredTrip[]>([]);
-  const [openTrip, setOpenTrip] = useState<string | null>(null);
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [selectedOutputId, setSelectedOutputId] = useState<string | null>(null);
   const [outputsByTrip, setOutputsByTrip] = useState<Record<string, StoredOutput[]>>({});
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState<string | null>(null);
@@ -28,18 +29,25 @@ function Dashboard() {
     listMyTrips().then((t) => {
       setTrips(t);
       setLoading(false);
+      if (t.length && !selectedTripId) setSelectedTripId(t[0].id);
     });
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const toggleTrip = async (id: string) => {
-    const next = openTrip === id ? null : id;
-    setOpenTrip(next);
-    if (next && !outputsByTrip[next]) {
-      const outs = await listTripOutputs(next);
-      setOutputsByTrip((m) => ({ ...m, [next]: outs }));
+  useEffect(() => {
+    if (!selectedTripId) return;
+    if (outputsByTrip[selectedTripId]) {
+      const first = outputsByTrip[selectedTripId][0];
+      setSelectedOutputId(first ? first.id : null);
+      return;
     }
-  };
+    listTripOutputs(selectedTripId).then((outs) => {
+      setOutputsByTrip((m) => ({ ...m, [selectedTripId]: outs }));
+      setSelectedOutputId(outs[0]?.id ?? null);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTripId]);
 
   const onRated = (tripId: string, outputId: string, patch: StoredOutput["rating"]) => {
     setOutputsByTrip((m) => ({
@@ -52,6 +60,11 @@ function Dashboard() {
     await supabase.auth.signOut();
     window.location.href = "/";
   };
+
+  const selectedTrip = trips.find((t) => t.id === selectedTripId) ?? null;
+  const outputs = selectedTripId ? outputsByTrip[selectedTripId] ?? [] : [];
+  const grouped = useMemo(() => groupOutputs(outputs), [outputs]);
+  const selectedOutput = outputs.find((o) => o.id === selectedOutputId) ?? null;
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -68,13 +81,13 @@ function Dashboard() {
         </div>
       </header>
 
-      <section className="max-w-3xl mx-auto px-6 pb-24">
-        <h1 className="text-4xl mb-2">
+      <section className="max-w-[1400px] mx-auto px-6 pb-24">
+        <h1 className="text-3xl mb-1">
           <span className="text-black">My</span>{" "}
           <span className="font-serif-italic text-accent">Wandr</span> trips
         </h1>
-        <p className="text-sm text-muted-foreground mb-8">
-          Every query you've asked. Tap a trip to review what Wandr suggested — thumbs up or down what worked, and tag why.
+        <p className="text-sm text-muted-foreground mb-6">
+          Pick a trip, browse how the conversation unfolded, and rate each turn to feed the eval loop.
         </p>
 
         {loading ? (
@@ -87,46 +100,218 @@ function Dashboard() {
             </Link>
           </div>
         ) : (
-          <ul className="space-y-3">
-            {trips.map((t) => (
-              <li key={t.id} className="border border-border rounded-2xl bg-card overflow-hidden">
-                <button
-                  onClick={() => toggleTrip(t.id)}
-                  className="w-full text-left px-5 py-4 flex items-start justify-between gap-4 hover:bg-muted/40 cursor-pointer"
-                >
-                  <div className="min-w-0">
-                    <div className="text-base truncate">{t.initial_prompt}</div>
-                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      <span>{new Date(t.created_at).toLocaleDateString()}</span>
-                      {t.brief?.when && <span>· {t.brief.when}</span>}
-                      {t.brief?.who && <span>· {t.brief.who}</span>}
-                      {t.brief?.budget && <span>· {t.brief.budget}</span>}
-                      {t.brief?.pace && <span>· {t.brief.pace}</span>}
-                    </div>
-                  </div>
-                  <span className="text-muted-foreground shrink-0">{openTrip === t.id ? "▾" : "▸"}</span>
-                </button>
-                {openTrip === t.id && (
-                  <div className="border-t border-border p-5 space-y-4 bg-background/40">
-                    {(outputsByTrip[t.id] ?? []).length === 0 ? (
-                      <div className="text-sm text-muted-foreground">No saved outputs for this trip yet.</div>
-                    ) : (
-                      (outputsByTrip[t.id] ?? []).map((o) => (
-                        <OutputCard key={o.id} output={o} onRated={(p) => onRated(t.id, o.id, p)} />
-                      ))
-                    )}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_320px] gap-5">
+            {/* Column 1 — trips */}
+            <aside className="border border-border rounded-2xl bg-card overflow-hidden self-start">
+              <div className="px-4 py-3 text-xs uppercase tracking-wide text-muted-foreground border-b border-border">
+                Trips
+              </div>
+              <ul className="max-h-[70vh] overflow-y-auto">
+                {trips.map((t) => {
+                  const active = t.id === selectedTripId;
+                  return (
+                    <li key={t.id}>
+                      <button
+                        onClick={() => setSelectedTripId(t.id)}
+                        className={`w-full text-left px-4 py-3 border-b border-border/60 cursor-pointer transition ${active ? "bg-primary/10" : "hover:bg-muted/40"}`}
+                      >
+                        <div className="text-sm line-clamp-2">{t.initial_prompt}</div>
+                        <div className="mt-1 text-[11px] text-muted-foreground">
+                          {new Date(t.created_at).toLocaleDateString()}
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </aside>
+
+            {/* Column 2 — categorized conversation */}
+            <div className="min-w-0 space-y-5">
+              {selectedTrip && (
+                <MetadataSection
+                  trip={selectedTrip}
+                  isSelected={selectedOutputId === `__meta__${selectedTrip.id}`}
+                  onSelect={() => setSelectedOutputId(`__meta__${selectedTrip.id}`)}
+                />
+              )}
+
+              <OutputGroup
+                title="Wandr recommendations"
+                subtitle="First shortlist Wandr surfaced"
+                items={grouped.initialShortlists}
+                selectedId={selectedOutputId}
+                onSelect={setSelectedOutputId}
+              />
+              <OutputGroup
+                title="Refined recommendations"
+                subtitle="Reshuffles after you added more context"
+                items={grouped.refinedShortlists}
+                selectedId={selectedOutputId}
+                onSelect={setSelectedOutputId}
+              />
+              <OutputGroup
+                title="Itineraries"
+                subtitle="Day-by-day plans Wandr built"
+                items={grouped.itineraries}
+                selectedId={selectedOutputId}
+                onSelect={setSelectedOutputId}
+              />
+
+              {selectedTrip && outputs.length === 0 && (
+                <div className="text-sm text-muted-foreground border border-dashed border-border rounded-xl p-6">
+                  No saved outputs for this trip yet.
+                </div>
+              )}
+            </div>
+
+            {/* Column 3 — rating panel */}
+            <aside className="lg:sticky lg:top-6 self-start">
+              {selectedOutputId?.startsWith("__meta__") && selectedTrip ? (
+                <MetadataRating trip={selectedTrip} />
+              ) : selectedOutput ? (
+                <RatingPanel
+                  key={selectedOutput.id}
+                  output={selectedOutput}
+                  onRated={(p) => onRated(selectedTripId!, selectedOutput.id, p)}
+                />
+              ) : (
+                <div className="border border-dashed border-border rounded-2xl p-6 text-sm text-muted-foreground">
+                  Pick a conversation turn to rate it.
+                </div>
+              )}
+            </aside>
+          </div>
         )}
       </section>
     </main>
   );
 }
 
-function OutputCard({
+function groupOutputs(outputs: StoredOutput[]) {
+  const shortlists = outputs.filter((o) => o.kind === "shortlist");
+  const itineraries = outputs.filter((o) => o.kind === "itinerary");
+  return {
+    initialShortlists: shortlists.slice(0, 1),
+    refinedShortlists: shortlists.slice(1),
+    itineraries,
+  };
+}
+
+function OutputGroup({
+  title,
+  subtitle,
+  items,
+  selectedId,
+  onSelect,
+}: {
+  title: string;
+  subtitle: string;
+  items: StoredOutput[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-2 px-1">
+        <h3 className="text-sm uppercase tracking-wide text-muted-foreground">{title}</h3>
+        <span className="text-[11px] text-muted-foreground/80">{subtitle}</span>
+      </div>
+      <ul className="space-y-2">
+        {items.map((o, i) => {
+          const active = o.id === selectedId;
+          const s = summarizeOutput(o);
+          return (
+            <li key={o.id}>
+              <button
+                onClick={() => onSelect(o.id)}
+                className={`w-full text-left border rounded-xl px-4 py-3 transition cursor-pointer ${active ? "border-primary bg-primary/5" : "border-border bg-card hover:border-foreground/30"}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm">
+                      {items.length > 1 && (
+                        <span className="text-muted-foreground mr-1.5">v{i + 1}</span>
+                      )}
+                      {o.label ?? s.title}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">{s.subtitle}</div>
+                  </div>
+                  <RatingBadge rating={o.rating?.rating ?? null} />
+                </div>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function RatingBadge({ rating }: { rating: 1 | -1 | null }) {
+  if (rating === 1) return <span className="text-xs shrink-0">👍</span>;
+  if (rating === -1) return <span className="text-xs shrink-0">👎</span>;
+  return <span className="text-[11px] text-muted-foreground shrink-0">unrated</span>;
+}
+
+function MetadataSection({
+  trip,
+  isSelected,
+  onSelect,
+}: {
+  trip: StoredTrip;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const fields: Array<[string, string | undefined]> = [
+    ["when", trip.brief?.when],
+    ["who", trip.brief?.who],
+    ["budget", trip.brief?.budget],
+    ["pace", trip.brief?.pace],
+    ["vibe", (trip.brief as any)?.vibe],
+  ];
+  const captured = fields.filter(([, v]) => v);
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-2 px-1">
+        <h3 className="text-sm uppercase tracking-wide text-muted-foreground">Trip brief</h3>
+        <span className="text-[11px] text-muted-foreground/80">Did Wandr capture the essentials?</span>
+      </div>
+      <button
+        onClick={onSelect}
+        className={`w-full text-left border rounded-xl px-4 py-3 transition cursor-pointer ${isSelected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-foreground/30"}`}
+      >
+        <div className="text-sm mb-2 line-clamp-2">"{trip.initial_prompt}"</div>
+        {captured.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {captured.map(([k, v]) => (
+              <span key={k} className="text-[11px] rounded-full bg-muted px-2 py-0.5">
+                <span className="text-muted-foreground">{k}:</span> {v}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="text-[11px] text-muted-foreground">No metadata captured yet.</div>
+        )}
+      </button>
+    </div>
+  );
+}
+
+function MetadataRating({ trip }: { trip: StoredTrip }) {
+  return (
+    <div className="border border-border rounded-2xl bg-card p-4">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Trip brief</div>
+      <div className="text-sm mb-3">Rating for brief capture lives on the specific outputs Wandr produced from it. Pick a shortlist or itinerary on the left to rate.</div>
+      <div className="text-xs text-muted-foreground">
+        Tip: use tags like "missing info" or "wrong budget" on the recommendation cards to flag intake gaps.
+      </div>
+    </div>
+  );
+}
+
+function RatingPanel({
   output,
   onRated,
 }: {
@@ -168,7 +353,7 @@ function OutputCard({
   };
 
   return (
-    <div className="border border-border rounded-xl p-4 bg-card">
+    <div className="border border-border rounded-2xl p-4 bg-card">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <div className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -201,7 +386,7 @@ function OutputCard({
         </div>
       </div>
 
-      {rating && (
+      {rating ? (
         <div className="space-y-3">
           <div>
             <div className="text-xs text-muted-foreground mb-1.5">
@@ -235,6 +420,10 @@ function OutputCard({
             </button>
             {savedAt && <span className="text-xs text-muted-foreground">Saved ✓</span>}
           </div>
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground">
+          Thumbs up or down to add tags and a note.
         </div>
       )}
     </div>
