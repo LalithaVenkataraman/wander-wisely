@@ -371,9 +371,16 @@ function PlanPage() {
       <aside className="w-[380px] shrink-0 border-r border-border flex flex-col bg-card">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <LogoWordmark size={56} className="text-3xl gap-2.5" />
-          <button onClick={startOver} className="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
-            Start over
-          </button>
+          <div className="flex items-center gap-3 text-xs">
+            {user ? (
+              <Link to="/dashboard" className="text-muted-foreground hover:text-foreground">My trips</Link>
+            ) : (
+              <Link to="/auth" className="text-muted-foreground hover:text-foreground">Sign in</Link>
+            )}
+            <button onClick={startOver} className="text-muted-foreground hover:text-foreground cursor-pointer">
+              Start over
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
