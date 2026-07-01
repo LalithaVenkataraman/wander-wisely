@@ -106,7 +106,7 @@ function Dashboard() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_320px] gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_340px] gap-6">
             {/* Column 1 — trips */}
             <aside className="border border-border rounded-2xl bg-card overflow-hidden self-start">
               <div className="px-4 py-3 text-xs uppercase tracking-wide text-muted-foreground border-b border-border">
@@ -140,6 +140,7 @@ function Dashboard() {
                   isSelected={selectedOutputId === `__meta__${selectedTrip.id}`}
                   onSelect={() => setSelectedOutputId(`__meta__${selectedTrip.id}`)}
                   onQuickRate={async (r) => {
+                    setSelectedOutputId(`__meta__${selectedTrip.id}`);
                     const saved = await upsertTripRating(selectedTrip.id, r, selectedTrip.rating?.tags ?? [], selectedTrip.rating?.note ?? null);
                     if (saved) onTripRated(selectedTrip.id, { rating: r, tags: selectedTrip.rating?.tags ?? [], note: selectedTrip.rating?.note ?? null });
                   }}
@@ -148,33 +149,33 @@ function Dashboard() {
 
               <OutputGroup
                 title="Wandr recommendations"
-                subtitle="First shortlist Wandr surfaced"
                 items={grouped.initialShortlists}
                 selectedId={selectedOutputId}
                 onSelect={setSelectedOutputId}
                 onQuickRate={async (o, r) => {
+                  setSelectedOutputId(o.id);
                   const saved = await upsertRating(o.id, r, o.rating?.tags ?? [], o.rating?.note ?? null);
                   if (saved) onRated(selectedTripId!, o.id, { rating: r, tags: o.rating?.tags ?? [], note: o.rating?.note ?? null });
                 }}
               />
               <OutputGroup
                 title="Refined recommendations"
-                subtitle="Reshuffles after you added more context"
                 items={grouped.refinedShortlists}
                 selectedId={selectedOutputId}
                 onSelect={setSelectedOutputId}
                 onQuickRate={async (o, r) => {
+                  setSelectedOutputId(o.id);
                   const saved = await upsertRating(o.id, r, o.rating?.tags ?? [], o.rating?.note ?? null);
                   if (saved) onRated(selectedTripId!, o.id, { rating: r, tags: o.rating?.tags ?? [], note: o.rating?.note ?? null });
                 }}
               />
               <OutputGroup
                 title="Itineraries"
-                subtitle="Day-by-day plans Wandr built"
                 items={grouped.itineraries}
                 selectedId={selectedOutputId}
                 onSelect={setSelectedOutputId}
                 onQuickRate={async (o, r) => {
+                  setSelectedOutputId(o.id);
                   const saved = await upsertRating(o.id, r, o.rating?.tags ?? [], o.rating?.note ?? null);
                   if (saved) onRated(selectedTripId!, o.id, { rating: r, tags: o.rating?.tags ?? [], note: o.rating?.note ?? null });
                 }}
@@ -226,14 +227,12 @@ function groupOutputs(outputs: StoredOutput[]) {
 
 function OutputGroup({
   title,
-  subtitle,
   items,
   selectedId,
   onSelect,
   onQuickRate,
 }: {
   title: string;
-  subtitle: string;
   items: StoredOutput[];
   selectedId: string | null;
   onSelect: (id: string) => void;
@@ -242,28 +241,24 @@ function OutputGroup({
   if (items.length === 0) return null;
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-2 px-1">
-        <h3 className="text-sm uppercase tracking-wide text-muted-foreground">{title}</h3>
-        <span className="text-[11px] text-muted-foreground/80">{subtitle}</span>
-      </div>
-      <ul className="space-y-2">
+      <h3 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground mb-2 px-1">{title}</h3>
+      <ul className="space-y-1.5">
         {items.map((o, i) => {
           const active = o.id === selectedId;
           const s = summarizeOutput(o);
           return (
             <li key={o.id}>
               <div
-                className={`w-full border rounded-xl px-4 py-3 transition ${active ? "border-primary bg-primary/5" : "border-border bg-card hover:border-foreground/30"}`}
+                className={`w-full border rounded-lg px-3 py-2.5 transition ${active ? "border-primary bg-primary/5" : "border-border/60 bg-card hover:border-foreground/30"}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <button onClick={() => onSelect(o.id)} className="min-w-0 text-left flex-1 cursor-pointer">
-                    <div className="text-sm">
+                    <div className="text-sm truncate">
                       {items.length > 1 && (
                         <span className="text-muted-foreground mr-1.5">v{i + 1}</span>
                       )}
-                      {o.label ?? s.title}
+                      <span className="text-muted-foreground">{s.subtitle || s.title}</span>
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">{s.subtitle}</div>
                   </button>
                   <InlineThumbs
                     rating={o.rating?.rating ?? null}
@@ -327,20 +322,17 @@ function MetadataSection({
   const captured = fields.filter(([, v]) => v);
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-2 px-1">
-        <h3 className="text-sm uppercase tracking-wide text-muted-foreground">Trip brief</h3>
-        <span className="text-[11px] text-muted-foreground/80">Did Wandr capture the essentials?</span>
-      </div>
+      <h3 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground mb-2 px-1">Trip brief</h3>
       <div
-        className={`w-full border rounded-xl px-4 py-3 transition ${isSelected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-foreground/30"}`}
+        className={`w-full border rounded-lg px-3 py-2.5 transition ${isSelected ? "border-primary bg-primary/5" : "border-border/60 bg-card hover:border-foreground/30"}`}
       >
         <div className="flex items-start justify-between gap-3">
           <button onClick={onSelect} className="text-left flex-1 min-w-0 cursor-pointer">
-            <div className="text-sm mb-2 line-clamp-2">"{trip.initial_prompt}"</div>
+            <div className="text-sm mb-1.5 line-clamp-1 text-muted-foreground italic">"{trip.initial_prompt}"</div>
             {captured.length ? (
               <div className="flex flex-wrap gap-1.5">
                 {captured.map(([k, v]) => (
-                  <span key={k} className="text-[11px] rounded-full bg-muted px-2 py-0.5">
+                  <span key={k} className="text-[11px] rounded-full bg-muted/60 px-2 py-0.5">
                     <span className="text-muted-foreground">{k}:</span> {v}
                   </span>
                 ))}
