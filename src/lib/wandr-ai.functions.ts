@@ -11,11 +11,11 @@ const MessageSchema = z.object({
 
 const BriefSchema = z
   .object({
-    when: z.string().optional(),
-    who: z.string().optional(),
-    budget: z.string().optional(),
-    pace: z.string().optional(),
-    duration: z.string().optional(),
+    when: z.string().nullish(),
+    who: z.string().nullish(),
+    budget: z.string().nullish(),
+    pace: z.string().nullish(),
+    duration: z.string().nullish(),
   })
   .partial();
 
