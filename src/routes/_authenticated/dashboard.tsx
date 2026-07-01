@@ -165,28 +165,17 @@ function TripRow({
           />
         </div>
 
-        {captured.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-3 ml-9">
-            {captured.map(([k, v]) => (
-              <span key={k} className="text-[11px] rounded-full bg-muted/60 px-2 py-0.5">
-                <span className="text-muted-foreground">{k}:</span> {v}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {rating && (
-          <div className="mt-3 ml-9">
-            <TagChips
-              rating={rating}
-              tags={tags}
-              onChange={async (nextTags) => {
-                onTripRated({ rating, tags: nextTags, note: null });
-                await upsertTripRating(trip.id, rating, nextTags, null);
-              }}
-            />
-          </div>
-        )}
+        <div className="mt-3 ml-9">
+          <TagChips
+            rating={rating ?? 1}
+            tags={tags}
+            onChange={async (nextTags) => {
+              const r = rating ?? 1;
+              onTripRated({ rating: r, tags: nextTags, note: null });
+              await upsertTripRating(trip.id, r, nextTags, null);
+            }}
+          />
+        </div>
       </div>
 
       {/* Section 2: expandable line items */}
