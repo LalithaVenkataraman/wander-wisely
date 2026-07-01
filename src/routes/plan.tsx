@@ -148,6 +148,38 @@ function PlanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Create a trip row once the user is signed in (and update brief as it grows).
+  useEffect(() => {
+    if (!user) return;
+    const initialPrompt = q ?? (typeof window !== "undefined" ? sessionStorage.getItem("wandr:prompt") ?? "" : "");
+    if (!initialPrompt) return;
+    if (tripIdRef.current) {
+      updateTripBrief(tripIdRef.current, briefRef.current);
+      return;
+    }
+    createTrip(initialPrompt, briefRef.current).then((t) => {
+      if (t) tripIdRef.current = t.id;
+    });
+  }, [user, q, brief]);
+
+  // Save committed shortlist outputs (skip live-preview refreshes).
+  useEffect(() => {
+    if (!user || !tripIdRef.current || previewMode || !pane || pane.cards.length === 0) return;
+    const sig = `shortlist:${pane.cards.map((c) => c.id).join(",")}`;
+    if (savedOutputSigRef.current.has(sig)) return;
+    savedOutputSigRef.current.add(sig);
+    saveOutput(tripIdRef.current, "shortlist", pane.label, { cards: pane.cards });
+  }, [user, pane, previewMode]);
+
+  // Save the itinerary each time a fresh one lands.
+  useEffect(() => {
+    if (!user || !tripIdRef.current || !itinerary) return;
+    const sig = `itinerary:${itinerary.id}:${itinerary.durationDays}:${itinerary.days.map((d) => d.stops.map((s) => s.name).join("|")).join("/")}`;
+    if (savedOutputSigRef.current.has(sig)) return;
+    savedOutputSigRef.current.add(sig);
+    saveOutput(tripIdRef.current, "itinerary", `${itinerary.city}${itinerary.country ? `, ${itinerary.country}` : ""}`, { itinerary });
+  }, [user, itinerary]);
+
   const runIntake = async (prompt: string) => {
     setThinking(true);
     try {
