@@ -17,6 +17,7 @@ export type StoredTrip = {
   brief: TripBrief;
   created_at: string;
   updated_at: string;
+  rating?: { rating: 1 | -1; tags: string[]; note: string | null } | null;
 };
 
 export const POSITIVE_TAGS = [
@@ -107,13 +108,39 @@ export async function upsertRating(
 export async function listMyTrips(): Promise<StoredTrip[]> {
   const { data, error } = await supabase
     .from("wandr_trips")
-    .select("*")
+    .select("*, wandr_trip_ratings(rating, tags, note)")
     .order("created_at", { ascending: false });
   if (error) {
     console.warn("listMyTrips", error);
     return [];
   }
-  return (data ?? []) as StoredTrip[];
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    rating: row.wandr_trip_ratings?.[0] ?? null,
+  })) as StoredTrip[];
+}
+
+export async function upsertTripRating(
+  tripId: string,
+  rating: 1 | -1,
+  tags: string[],
+  note: string | null,
+) {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return null;
+  const { data, error } = await supabase
+    .from("wandr_trip_ratings")
+    .upsert(
+      { trip_id: tripId, user_id: u.user.id, rating, tags, note },
+      { onConflict: "trip_id,user_id" },
+    )
+    .select()
+    .single();
+  if (error) {
+    console.warn("upsertTripRating", error);
+    return null;
+  }
+  return data;
 }
 
 export async function listTripOutputs(tripId: string): Promise<StoredOutput[]> {
