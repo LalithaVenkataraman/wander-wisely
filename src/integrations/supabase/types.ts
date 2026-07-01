@@ -14,7 +14,112 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      wandr_outputs: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          label: string | null
+          payload: Json
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          label?: string | null
+          payload: Json
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string | null
+          payload?: Json
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wandr_outputs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "wandr_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wandr_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          output_id: string
+          rating: number
+          tags: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          output_id: string
+          rating: number
+          tags?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          output_id?: string
+          rating?: number
+          tags?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wandr_ratings_output_id_fkey"
+            columns: ["output_id"]
+            isOneToOne: false
+            referencedRelation: "wandr_outputs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wandr_trips: {
+        Row: {
+          brief: Json
+          created_at: string
+          id: string
+          initial_prompt: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brief?: Json
+          created_at?: string
+          id?: string
+          initial_prompt: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brief?: Json
+          created_at?: string
+          id?: string
+          initial_prompt?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
