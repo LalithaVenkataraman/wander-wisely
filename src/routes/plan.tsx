@@ -1253,59 +1253,31 @@ function MoodBoard({
 
       {/* Bento collage: photos + embedded reels + note cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 auto-rows-[130px] gap-3 mb-8">
-        {/* Big photo */}
-        <div className="col-span-2 row-span-2 rounded-2xl overflow-hidden bg-muted border border-border">
-          <img src={photos[1]} alt="" loading="lazy" className="w-full h-full object-cover" />
-        </div>
+        {/* Row 1-2: Big photo + Reel 1 */}
+        <PhotoTile
+          src={photos[1]}
+          fb={fallback(1)}
+          caption={captions[0]}
+          className="col-span-2 row-span-2"
+        />
+        <ReelTile src={embed(reels[0].query)} title={reels[0].title} className="col-span-2 row-span-2" />
 
-        {/* Reel 1 */}
-        <div className="col-span-2 row-span-2 rounded-2xl overflow-hidden bg-black border border-border relative">
-          <iframe
-            src={embed(reels[0].query)}
-            title={reels[0].title}
-            className="absolute inset-0 w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-            allowFullScreen
-          />
-          <div className="absolute top-2 left-2 text-[10px] uppercase tracking-widest bg-black/60 text-white px-2 py-0.5 rounded-full">
-            ▶ {reels[0].title}
-          </div>
-        </div>
-
-        {/* Small photos */}
-        <div className="rounded-2xl overflow-hidden bg-muted border border-border">
-          <img src={photos[2]} alt="" loading="lazy" className="w-full h-full object-cover" />
-        </div>
-        <div className="rounded-2xl overflow-hidden bg-muted border border-border">
-          <img src={photos[3]} alt="" loading="lazy" className="w-full h-full object-cover" />
-        </div>
-
-        {/* Note card */}
+        {/* Row 3: two small photos + note */}
+        <PhotoTile src={photos[2]} fb={fallback(2)} caption={captions[1]} />
+        <PhotoTile src={photos[3]} fb={fallback(3)} caption={captions[2]} />
         <div className="col-span-2 rounded-2xl border border-border bg-accent/10 p-4 flex flex-col justify-center">
           <div className="text-[10px] uppercase tracking-widest text-accent mb-1">Why here</div>
           <div className="font-serif-italic text-xl text-foreground/90 leading-snug">{card.tag}</div>
         </div>
 
-        {/* Reel 2 */}
-        <div className="col-span-2 row-span-2 rounded-2xl overflow-hidden bg-black border border-border relative">
-          <iframe
-            src={embed(reels[1].query)}
-            title={reels[1].title}
-            className="absolute inset-0 w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-            allowFullScreen
-          />
-          <div className="absolute top-2 left-2 text-[10px] uppercase tracking-widest bg-black/60 text-white px-2 py-0.5 rounded-full">
-            ▶ {reels[1].title}
-          </div>
-        </div>
-
-        <div className="rounded-2xl overflow-hidden bg-muted border border-border">
-          <img src={photos[4]} alt="" loading="lazy" className="w-full h-full object-cover" />
-        </div>
-        <div className="rounded-2xl overflow-hidden bg-muted border border-border">
-          <img src={photos[5]} alt="" loading="lazy" className="w-full h-full object-cover" />
-        </div>
+        {/* Row 4-5: Reel 2 + big photo */}
+        <ReelTile src={embed(reels[1].query)} title={reels[1].title} className="col-span-2 row-span-2" />
+        <PhotoTile
+          src={photos[4]}
+          fb={fallback(4)}
+          caption={captions[3]}
+          className="col-span-2 row-span-2"
+        />
       </div>
 
       {/* Polaroid-scattered photos row */}
@@ -1318,10 +1290,22 @@ function MoodBoard({
             style={{ transform: `rotate(${tilts[i % tilts.length]}deg)`, width: 150 }}
           >
             <div className="w-full aspect-[4/5] bg-muted overflow-hidden">
-              <img src={src} alt="" loading="lazy" className="w-full h-full object-cover" />
+              <img
+                src={src}
+                alt=""
+                loading="lazy"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const el = e.currentTarget;
+                  if (el.dataset.fb !== "1") {
+                    el.dataset.fb = "1";
+                    el.src = fallback(100 + i);
+                  }
+                }}
+              />
             </div>
-            <div className="text-center text-[11px] font-serif-italic text-foreground/60 mt-1">
-              {card.city}
+            <div className="text-center text-[11px] font-serif-italic text-foreground/70 mt-1 px-1 leading-tight">
+              {captions[(i + 4) % captions.length]}
             </div>
           </div>
         ))}
