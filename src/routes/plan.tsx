@@ -363,6 +363,17 @@ function PlanPage() {
     setItinerary({ ...itinerary, days });
   };
 
+  const shuffleDay = (dayIdx: number) => {
+    if (!itinerary) return;
+    const days = itinerary.days.map((d) => ({ ...d, stops: [...d.stops] }));
+    const arr = days[dayIdx].stops;
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    setItinerary({ ...itinerary, days });
+  };
+
   const onSave = async () => {
     if (!itinerary) return;
     const trip = saveTrip(itinerary, brief);
