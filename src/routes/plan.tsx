@@ -53,6 +53,7 @@ function PlanPage() {
   const [previewMode, setPreviewMode] = useState(true);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [pendingCard, setPendingCard] = useState<DestinationCard | null>(null);
+  const [moodCard, setMoodCard] = useState<DestinationCard | null>(null);
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [followup, setFollowup] = useState("");
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -235,17 +236,28 @@ function PlanPage() {
       setChat((c) => [...c, { who: "wandr", text: conflicts[0] + " Want me to go ahead, or pick something gentler?" }]);
       return;
     }
-    confirmPick(card);
+    openMood(card);
+  };
+
+  const openMood = (card: DestinationCard) => {
+    setPendingCard(null);
+    setMoodCard(card);
+    setChat((c) => [
+      ...c,
+      { who: "you", text: `Tell me more about ${card.city}.` },
+      { who: "wandr", text: `${card.city}, coming right up — here's the vibe. Say the word and I'll build the plan.` },
+    ]);
   };
 
   const confirmPick = (card: DestinationCard) => {
     const style: ItineraryStyle =
       brief.pace === "Mindful" ? "mindful" : brief.pace === "Pack it in" ? "max" : "balanced";
     setPendingCard(null);
+    setMoodCard(null);
     setShareUrl(null);
     setChat((c) => [
       ...c,
-      { who: "you", text: `Let's go with ${card.city}.` },
+      { who: "you", text: `Let's plan ${card.city}.` },
       { who: "wandr", text: `Locked in. Building your ${card.city} plan…` },
     ]);
     runItinerary(card, style);
@@ -426,7 +438,7 @@ function PlanPage() {
           )}
           {pendingCard && (
             <div className="flex gap-2 pt-1">
-              <button onClick={() => confirmPick(pendingCard)} className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer">Go ahead anyway</button>
+              <button onClick={() => openMood(pendingCard)} className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer">Go ahead anyway</button>
               <button onClick={() => setPendingCard(null)} className="text-xs px-3 py-1.5 rounded-full border border-border cursor-pointer">Show gentler picks</button>
             </div>
           )}
