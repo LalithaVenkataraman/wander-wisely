@@ -53,6 +53,7 @@ function PlanPage() {
   const [previewMode, setPreviewMode] = useState(true);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [pendingCard, setPendingCard] = useState<DestinationCard | null>(null);
+  const [moodCard, setMoodCard] = useState<DestinationCard | null>(null);
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [followup, setFollowup] = useState("");
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -235,17 +236,28 @@ function PlanPage() {
       setChat((c) => [...c, { who: "wandr", text: conflicts[0] + " Want me to go ahead, or pick something gentler?" }]);
       return;
     }
-    confirmPick(card);
+    openMood(card);
+  };
+
+  const openMood = (card: DestinationCard) => {
+    setPendingCard(null);
+    setMoodCard(card);
+    setChat((c) => [
+      ...c,
+      { who: "you", text: `Tell me more about ${card.city}.` },
+      { who: "wandr", text: `${card.city}, coming right up — here's the vibe. Say the word and I'll build the plan.` },
+    ]);
   };
 
   const confirmPick = (card: DestinationCard) => {
     const style: ItineraryStyle =
       brief.pace === "Mindful" ? "mindful" : brief.pace === "Pack it in" ? "max" : "balanced";
     setPendingCard(null);
+    setMoodCard(null);
     setShareUrl(null);
     setChat((c) => [
       ...c,
-      { who: "you", text: `Let's go with ${card.city}.` },
+      { who: "you", text: `Let's plan ${card.city}.` },
       { who: "wandr", text: `Locked in. Building your ${card.city} plan…` },
     ]);
     runItinerary(card, style);
@@ -426,7 +438,7 @@ function PlanPage() {
           )}
           {pendingCard && (
             <div className="flex gap-2 pt-1">
-              <button onClick={() => confirmPick(pendingCard)} className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer">Go ahead anyway</button>
+              <button onClick={() => openMood(pendingCard)} className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer">Go ahead anyway</button>
               <button onClick={() => setPendingCard(null)} className="text-xs px-3 py-1.5 rounded-full border border-border cursor-pointer">Show gentler picks</button>
             </div>
           )}
@@ -485,7 +497,14 @@ function PlanPage() {
             </div>
           </div>
 
-          {!itinerary && pane && (
+          {!itinerary && moodCard && (
+            <MoodBoard
+              card={moodCard}
+              onBack={() => setMoodCard(null)}
+              onPlan={() => confirmPick(moodCard)}
+            />
+          )}
+          {!itinerary && !moodCard && pane && (
             <CardsView
               pane={pane}
               brief={brief}
@@ -494,7 +513,7 @@ function PlanPage() {
               previewLoading={previewLoading}
             />
           )}
-          {!itinerary && !pane && (
+          {!itinerary && !moodCard && !pane && (
             <div className="text-center text-sm text-muted-foreground py-24">
               <div className="font-serif-italic text-2xl text-foreground/70 mb-2">Sketching some ideas…</div>
               <div>Recommendations will appear here and refine as we chat.</div>
@@ -1158,5 +1177,156 @@ function StopDetailModal({
         </div>
       </div>
     </div>
+  );
+}
+function MoodBoard({
+  card,
+  onBack,
+  onPlan,
+}: {
+  card: DestinationCard;
+  onBack: () => void;
+  onPlan: () => void;
+}) {
+  const photos = getPostcards(card.city, card.country, 9);
+  const reels = (card.reels && card.reels.length > 0
+    ? card.reels
+    : [
+        { title: "A day in " + card.city, query: `${card.city} vlog local` },
+        { title: "Where to eat", query: `${card.city} street food` },
+        { title: "Best things to do", query: `${card.city} things to do` },
+      ]
+  ).slice(0, 3);
+  const embed = (q: string) =>
+    `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(q)}&modestbranding=1&rel=0&playsinline=1`;
+  // Fixed poses to keep the collage feeling handmade but stable.
+  const tilts = [-3, 2, -1.5, 3, -2, 1.5, -2.5, 2, -1];
+  return (
+    <section className="pb-16">
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={onBack} className="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
+          ← Back to options
+        </button>
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Mood board</div>
+      </div>
+
+      {/* Hero */}
+      <div className="relative rounded-3xl overflow-hidden border border-border mb-6">
+        <div className="aspect-[16/8] bg-muted">
+          <img
+            src={photos[0]}
+            alt=""
+            loading="lazy"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br", "from-primary/20", "to-muted");
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 text-white">
+          <div className="text-[10px] uppercase tracking-widest opacity-80 mb-1">{card.country}</div>
+          <h1 className="font-serif-italic text-4xl sm:text-5xl mb-2">{card.city}</h1>
+          <p className="text-sm sm:text-base max-w-xl opacity-95">{card.tag}</p>
+          <div className="flex flex-wrap gap-2 mt-3 text-[11px]">
+            {card.bestMonths && <span className="bg-white/20 backdrop-blur px-2.5 py-1 rounded-full">📆 {card.bestMonths}</span>}
+            {card.budget && <span className="bg-white/20 backdrop-blur px-2.5 py-1 rounded-full">💸 {card.budget}</span>}
+            {card.flightTime && <span className="bg-white/20 backdrop-blur px-2.5 py-1 rounded-full">✈️ {card.flightTime}</span>}
+          </div>
+        </div>
+      </div>
+
+      {/* Bento collage: photos + embedded reels + note cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 auto-rows-[130px] gap-3 mb-8">
+        {/* Big photo */}
+        <div className="col-span-2 row-span-2 rounded-2xl overflow-hidden bg-muted border border-border">
+          <img src={photos[1]} alt="" loading="lazy" className="w-full h-full object-cover" />
+        </div>
+
+        {/* Reel 1 */}
+        <div className="col-span-2 row-span-2 rounded-2xl overflow-hidden bg-black border border-border relative">
+          <iframe
+            src={embed(reels[0].query)}
+            title={reels[0].title}
+            className="absolute inset-0 w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            allowFullScreen
+          />
+          <div className="absolute top-2 left-2 text-[10px] uppercase tracking-widest bg-black/60 text-white px-2 py-0.5 rounded-full">
+            ▶ {reels[0].title}
+          </div>
+        </div>
+
+        {/* Small photos */}
+        <div className="rounded-2xl overflow-hidden bg-muted border border-border">
+          <img src={photos[2]} alt="" loading="lazy" className="w-full h-full object-cover" />
+        </div>
+        <div className="rounded-2xl overflow-hidden bg-muted border border-border">
+          <img src={photos[3]} alt="" loading="lazy" className="w-full h-full object-cover" />
+        </div>
+
+        {/* Note card */}
+        <div className="col-span-2 rounded-2xl border border-border bg-accent/10 p-4 flex flex-col justify-center">
+          <div className="text-[10px] uppercase tracking-widest text-accent mb-1">Why here</div>
+          <div className="font-serif-italic text-xl text-foreground/90 leading-snug">{card.tag}</div>
+        </div>
+
+        {/* Reel 2 */}
+        <div className="col-span-2 row-span-2 rounded-2xl overflow-hidden bg-black border border-border relative">
+          <iframe
+            src={embed(reels[1].query)}
+            title={reels[1].title}
+            className="absolute inset-0 w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            allowFullScreen
+          />
+          <div className="absolute top-2 left-2 text-[10px] uppercase tracking-widest bg-black/60 text-white px-2 py-0.5 rounded-full">
+            ▶ {reels[1].title}
+          </div>
+        </div>
+
+        <div className="rounded-2xl overflow-hidden bg-muted border border-border">
+          <img src={photos[4]} alt="" loading="lazy" className="w-full h-full object-cover" />
+        </div>
+        <div className="rounded-2xl overflow-hidden bg-muted border border-border">
+          <img src={photos[5]} alt="" loading="lazy" className="w-full h-full object-cover" />
+        </div>
+      </div>
+
+      {/* Polaroid-scattered photos row */}
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Postcards</div>
+      <div className="flex flex-wrap gap-4 justify-center mb-10">
+        {photos.slice(0, 6).map((src, i) => (
+          <div
+            key={i}
+            className="bg-white p-2 pb-6 rounded-sm shadow-md border border-black/5 transition-transform hover:scale-[1.03] hover:z-10"
+            style={{ transform: `rotate(${tilts[i % tilts.length]}deg)`, width: 150 }}
+          >
+            <div className="w-full aspect-[4/5] bg-muted overflow-hidden">
+              <img src={src} alt="" loading="lazy" className="w-full h-full object-cover" />
+            </div>
+            <div className="text-center text-[11px] font-serif-italic text-foreground/60 mt-1">
+              {card.city}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA */}
+      <div className="sticky bottom-4 z-10">
+        <div className="mx-auto max-w-lg bg-card border border-border rounded-full shadow-lg p-2 flex items-center gap-2">
+          <div className="pl-4 text-sm text-foreground/80 flex-1 truncate">
+            Love the vibe? Let's build it.
+          </div>
+          <button
+            onClick={onPlan}
+            className="text-sm px-5 py-2.5 rounded-full bg-primary text-primary-foreground hover:opacity-90 cursor-pointer whitespace-nowrap"
+          >
+            ✈️ Plan my itinerary →
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
