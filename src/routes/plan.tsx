@@ -730,7 +730,7 @@ function ItineraryView({
 
       {tab === "days" && (
         <section className="mb-12">
-          <p className="text-xs text-muted-foreground mb-4">Drag to reorder or move across days. Use “+ Add stop” to slot in your own.</p>
+          <p className="text-xs text-muted-foreground mb-4 italic">A mood board for each day — drag to rearrange, hit shuffle to remix, or drop in your own.</p>
           <div className="space-y-6">
             {it.days.map((d, dayIdx) => {
               const total = d.stops.reduce((a, s) => a + s.durationMin, 0);
@@ -750,12 +750,21 @@ function ItineraryView({
                         </div>
                       )}
                     </div>
-                    <button
-                      onClick={() => { setAddingDay(dayIdx); setAddText(""); }}
-                      className="text-xs px-3 py-1.5 rounded-full border border-border bg-card hover:border-primary/50 cursor-pointer whitespace-nowrap"
-                    >
-                      + Add stop
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => onShuffleDay(dayIdx)}
+                        disabled={d.stops.length < 2}
+                        className="text-xs px-3 py-1.5 rounded-full border border-border bg-card hover:border-primary/50 cursor-pointer whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        🔀 Shuffle
+                      </button>
+                      <button
+                        onClick={() => { setAddingDay(dayIdx); setAddText(""); }}
+                        className="text-xs px-3 py-1.5 rounded-full border border-border bg-card hover:border-primary/50 cursor-pointer whitespace-nowrap"
+                      >
+                        + Add stop
+                      </button>
+                    </div>
                   </div>
                   <div
                     onDragOver={(e) => { e.preventDefault(); }}
@@ -767,14 +776,14 @@ function ItineraryView({
                       dragRef.current = null;
                       setDragOver(null);
                     }}
-                    className="p-2 rounded-xl bg-muted/30 border border-dashed border-border min-h-[120px]"
+                    className="p-3 rounded-2xl bg-[#1a1614] border border-dashed border-border/60 min-h-[140px]"
                   >
                     {d.stops.length === 0 && (
-                      <div className="text-sm text-muted-foreground italic px-2 py-6 text-center">
+                      <div className="text-sm text-muted-foreground/80 italic px-2 py-6 text-center">
                         Empty day. Drop a stop here, or add one above.
                       </div>
                     )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-6 auto-rows-[130px] gap-3">
                       {d.stops.map((s, i) => {
                         const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i;
                         const prev = i > 0 ? d.stops[i - 1] : null;
@@ -785,6 +794,7 @@ function ItineraryView({
                               city={it.city}
                               country={it.country}
                               isOver={isOver}
+                              size={bentoSize(i, d.stops.length)}
                               commute={prev ? commuteFor(prev, s) : null}
                               onDragStart={() => { dragRef.current = { dayIdx, stopIdx: i }; }}
                               onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
