@@ -648,6 +648,7 @@ function ItineraryView({
   onMoveAcross: (fromDay: number, fromStop: number, toDay: number, toStop: number) => void;
   onRemove: (dayIdx: number, stopIdx: number) => void;
   onAddStop: (dayIdx: number, title: string) => void;
+  onShuffleDay: (dayIdx: number) => void;
   onSave: () => void;
   shareUrl: string | null;
 }) {
