@@ -949,7 +949,7 @@ function stopImages(stop: { id: string; title: string }, city: string, country: 
 }
 
 function StopCard({
-  stop, city, country, isOver, commute,
+  stop, city, country, isOver, commute, size = "sm",
   onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onRemove, onExpand,
 }: {
   stop: { id: string; title: string; note: string; durationMin: number; timeOfDay: string };
@@ -957,6 +957,7 @@ function StopCard({
   country: string;
   isOver: boolean;
   commute: Commute | null;
+  size?: "sm" | "md" | "lg" | "wide" | "tall";
   onDragStart: () => void;
   onDragEnd: () => void;
   onDragOver: (e: React.DragEvent) => void;
@@ -967,6 +968,12 @@ function StopCard({
 }) {
   const img = stopImages(stop, city, country, 1)[0];
   const hours = Math.round((stop.durationMin / 60) * 10) / 10;
+  const spanClass =
+    size === "lg" ? "col-span-2 row-span-2 md:col-span-3 md:row-span-2" :
+    size === "wide" ? "col-span-2 row-span-1 md:col-span-4 md:row-span-1" :
+    size === "tall" ? "col-span-1 row-span-2 md:col-span-2 md:row-span-2" :
+    size === "md" ? "col-span-2 row-span-1 md:col-span-3 md:row-span-1" :
+    "col-span-1 row-span-1 md:col-span-2 md:row-span-1";
   return (
     <div
       draggable
@@ -976,47 +983,63 @@ function StopCard({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       onClick={onExpand}
-      className={`group relative bg-card border rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all ${
+      className={`group relative bg-black border rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all ${spanClass} ${
         isOver ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"
       }`}
     >
-      <div className="aspect-[3/2] bg-muted relative">
+      <div className="absolute inset-0 bg-muted">
         <img
           src={img}
           alt=""
           loading="lazy"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover opacity-80 saturate-[0.85] group-hover:opacity-95 group-hover:saturate-100 transition-all duration-500"
           onError={(e) => {
             (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br", "from-primary/20", "to-muted");
             e.currentTarget.style.display = "none";
           }}
         />
-        <div className="absolute top-2.5 left-2.5 text-[10px] uppercase tracking-widest bg-background/85 backdrop-blur px-2.5 py-1 rounded-full text-foreground/80">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/20" />
+      </div>
+      <div className="absolute inset-0 flex flex-col justify-between p-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="text-[10px] uppercase tracking-widest bg-black/45 backdrop-blur px-2 py-1 rounded-full text-white/85">
           {stop.timeOfDay}
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
           aria-label="Remove stop"
-          className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-background/85 backdrop-blur text-xs text-foreground/70 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            className="w-7 h-7 rounded-full bg-black/50 backdrop-blur text-xs text-white/80 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
         >
           ×
         </button>
+        </div>
+        <div>
         {commute && (
-          <div className="absolute bottom-2.5 left-2.5 text-[11px] inline-flex items-center gap-1 bg-background/85 backdrop-blur px-2.5 py-1 rounded-full text-foreground/75">
+            <div className="mb-2 text-[11px] inline-flex items-center gap-1 bg-black/45 backdrop-blur px-2 py-0.5 rounded-full text-white/80">
             <span aria-hidden>{commute.icon}</span>
-            <span>{commute.mins}m {commute.label} from last stop</span>
+              <span>{commute.mins}m {commute.label}</span>
           </div>
         )}
-      </div>
-      <div className="p-4">
-        <div className="flex items-baseline justify-between gap-2">
-          <div className="text-base font-normal text-foreground/90 leading-snug truncate">{stop.title}</div>
-          <div className="text-[11px] text-muted-foreground shrink-0">{hours}h</div>
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="text-[15px] font-normal text-white leading-tight line-clamp-2">{stop.title}</div>
+            <div className="text-[11px] text-white/60 shrink-0">{hours}h</div>
         </div>
-        <div className="text-sm text-muted-foreground mt-1.5 line-clamp-1">{stop.note}</div>
+          <div className="text-[12px] italic text-white/70 mt-1 line-clamp-2">{stop.note}</div>
       </div>
     </div>
+    </div>
   );
+}
+
+function bentoSize(i: number, total: number): "sm" | "md" | "lg" | "wide" | "tall" {
+  // Rotating pattern that fills a 6-col grid nicely for common day sizes (3–6 stops).
+  const pattern: Array<"sm" | "md" | "lg" | "wide" | "tall"> =
+    total <= 2 ? ["lg", "md"] :
+    total === 3 ? ["lg", "md", "md"] :
+    total === 4 ? ["lg", "md", "md", "md"] :
+    total === 5 ? ["lg", "md", "md", "sm", "sm"] :
+                  ["lg", "md", "sm", "sm", "md", "md"];
+  return pattern[i % pattern.length];
 }
 
 function PolaroidStack({ city, country }: { city: string; country: string }) {
