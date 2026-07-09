@@ -639,6 +639,7 @@ function ItineraryView({
   onMoveAcross,
   onRemove,
   onAddStop,
+  onShuffleDay,
   onSave,
   shareUrl,
 }: {
