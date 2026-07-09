@@ -1281,20 +1281,20 @@ function MoodBoard({
       </div>
 
       {/* Hero */}
-      <div className="relative rounded-3xl overflow-hidden border border-border mb-6">
+      <div className="relative rounded-3xl overflow-hidden border border-border mb-6 bg-neutral-900">
         <div className="aspect-[16/8] bg-muted">
           <img
             src={photos[0]}
             alt=""
             loading="lazy"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover [filter:saturate(0.7)_contrast(1.2)_brightness(0.75)]"
             onError={(e) => {
               (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br", "from-primary/20", "to-muted");
               e.currentTarget.style.display = "none";
             }}
           />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
         <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 text-white">
           <div className="text-[10px] uppercase tracking-widest opacity-80 mb-1">{card.country}</div>
           <h1 className="font-serif-italic text-4xl sm:text-5xl mb-2">{card.city}</h1>
@@ -1321,9 +1321,9 @@ function MoodBoard({
         {/* Row 3: two small photos + note */}
         <PhotoTile src={photos[2]} fb={fallback(2)} caption={captions[1]} />
         <PhotoTile src={photos[3]} fb={fallback(3)} caption={captions[2]} />
-        <div className="col-span-2 rounded-2xl border border-border bg-accent/10 p-4 flex flex-col justify-center">
+        <div className="col-span-2 rounded-2xl border border-border bg-neutral-900 text-white p-4 flex flex-col justify-center">
           <div className="text-[10px] uppercase tracking-widest text-accent mb-1">Why here</div>
-          <div className="font-serif-italic text-xl text-foreground/90 leading-snug">{card.tag}</div>
+          <div className="font-serif-italic text-xl leading-snug opacity-95">{card.tag}</div>
         </div>
 
         {/* Row 4-5: Reel 2 + big photo */}
@@ -1334,37 +1334,6 @@ function MoodBoard({
           caption={captions[3]}
           className="col-span-2 row-span-2"
         />
-      </div>
-
-      {/* Polaroid-scattered photos row */}
-      <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Postcards</div>
-      <div className="flex flex-wrap gap-4 justify-center mb-10">
-        {photos.slice(0, 6).map((src, i) => (
-          <div
-            key={i}
-            className="bg-white p-2 pb-6 rounded-sm shadow-md border border-black/5 transition-transform hover:scale-[1.03] hover:z-10"
-            style={{ transform: `rotate(${tilts[i % tilts.length]}deg)`, width: 150 }}
-          >
-            <div className="w-full aspect-[4/5] bg-muted overflow-hidden">
-              <img
-                src={src}
-                alt=""
-                loading="lazy"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const el = e.currentTarget;
-                  if (el.dataset.fb !== "1") {
-                    el.dataset.fb = "1";
-                    el.src = fallback(100 + i);
-                  }
-                }}
-              />
-            </div>
-            <div className="text-center text-[11px] font-serif-italic text-foreground/70 mt-1 px-1 leading-tight">
-              {captions[(i + 4) % captions.length]}
-            </div>
-          </div>
-        ))}
       </div>
 
       {/* CTA */}
