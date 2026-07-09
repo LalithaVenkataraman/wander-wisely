@@ -1189,6 +1189,8 @@ function MoodBoard({
   onPlan: () => void;
 }) {
   const photos = getPostcards(card.city, card.country, 9);
+  const fallback = (i: number) =>
+    `https://picsum.photos/seed/${encodeURIComponent(card.city + i)}/640/800`;
   const reels = (card.reels && card.reels.length > 0
     ? card.reels
     : [
@@ -1201,6 +1203,18 @@ function MoodBoard({
     `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(q)}&modestbranding=1&rel=0&playsinline=1`;
   // Fixed poses to keep the collage feeling handmade but stable.
   const tilts = [-3, 2, -1.5, 3, -2, 1.5, -2.5, 2, -1];
+  // Witty one-liners per tile — playful, low-effort vibe copy.
+  const c = card.city;
+  const captions = [
+    `Wake up. It's ${c}.`,
+    `Golden hour hits different here.`,
+    `That "one more photo" street.`,
+    `Snack detour — non-negotiable.`,
+    `Blink and you'll miss it. Don't.`,
+    `Locals only knew about this one.`,
+    `Postcards? We're inside one.`,
+    `The corner your camera roll will thank you for.`,
+  ];
   return (
     <section className="pb-16">
       <div className="flex items-center justify-between mb-4">
