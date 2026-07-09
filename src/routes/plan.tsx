@@ -538,6 +538,7 @@ function PlanPage() {
               onMoveAcross={moveStopAcross}
               onRemove={removeStop}
               onAddStop={addStop}
+              onShuffleDay={shuffleDay}
               onSave={onSave}
               shareUrl={shareUrl}
             />
