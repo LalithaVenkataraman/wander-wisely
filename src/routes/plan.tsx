@@ -1179,6 +1179,61 @@ function StopDetailModal({
     </div>
   );
 }
+function PhotoTile({
+  src,
+  fb,
+  caption,
+  className = "",
+}: {
+  src: string;
+  fb: string;
+  caption?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`relative rounded-2xl overflow-hidden bg-muted border border-border group ${className}`}>
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        className="w-full h-full object-cover"
+        onError={(e) => {
+          const el = e.currentTarget;
+          if (el.dataset.fb !== "1") {
+            el.dataset.fb = "1";
+            el.src = fb;
+          }
+        }}
+      />
+      {caption && (
+        <>
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+          <div className="absolute bottom-2 left-3 right-3 font-serif-italic text-white text-sm sm:text-base leading-tight drop-shadow">
+            {caption}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ReelTile({ src, title, className = "" }: { src: string; title: string; className?: string }) {
+  return (
+    <div className={`relative rounded-2xl overflow-hidden bg-black border border-border ${className}`}>
+      <iframe
+        src={src}
+        title={title}
+        className="absolute inset-0 w-full h-full"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+        allowFullScreen
+      />
+      <div className="absolute top-2 left-2 text-[10px] uppercase tracking-widest bg-black/60 text-white px-2 py-0.5 rounded-full pointer-events-none">
+        ▶ {title}
+      </div>
+    </div>
+  );
+}
+
 function MoodBoard({
   card,
   onBack,
