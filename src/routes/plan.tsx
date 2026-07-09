@@ -1257,8 +1257,6 @@ function MoodBoard({
   ).slice(0, 3);
   const embed = (q: string) =>
     `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(q)}&modestbranding=1&rel=0&playsinline=1`;
-  // Fixed poses to keep the collage feeling handmade but stable.
-  const tilts = [-3, 2, -1.5, 3, -2, 1.5, -2.5, 2, -1];
   // Witty one-liners per tile — playful, low-effort vibe copy.
   const c = card.city;
   const captions = [
