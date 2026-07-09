@@ -497,7 +497,14 @@ function PlanPage() {
             </div>
           </div>
 
-          {!itinerary && pane && (
+          {!itinerary && moodCard && (
+            <MoodBoard
+              card={moodCard}
+              onBack={() => setMoodCard(null)}
+              onPlan={() => confirmPick(moodCard)}
+            />
+          )}
+          {!itinerary && !moodCard && pane && (
             <CardsView
               pane={pane}
               brief={brief}
@@ -506,7 +513,7 @@ function PlanPage() {
               previewLoading={previewLoading}
             />
           )}
-          {!itinerary && !pane && (
+          {!itinerary && !moodCard && !pane && (
             <div className="text-center text-sm text-muted-foreground py-24">
               <div className="font-serif-italic text-2xl text-foreground/70 mb-2">Sketching some ideas…</div>
               <div>Recommendations will appear here and refine as we chat.</div>
