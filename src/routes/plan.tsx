@@ -1191,12 +1191,12 @@ function PhotoTile({
   className?: string;
 }) {
   return (
-    <div className={`relative rounded-2xl overflow-hidden bg-muted border border-border group ${className}`}>
+    <div className={`relative rounded-2xl overflow-hidden bg-neutral-900 border border-border group ${className}`}>
       <img
         src={src}
         alt=""
         loading="lazy"
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover [filter:saturate(0.7)_contrast(1.15)_brightness(0.82)]"
         onError={(e) => {
           const el = e.currentTarget;
           if (el.dataset.fb !== "1") {
@@ -1205,9 +1205,10 @@ function PhotoTile({
           }
         }}
       />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40 pointer-events-none" />
       {caption && (
         <>
-          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
           <div className="absolute bottom-2 left-3 right-3 font-serif-italic text-white text-sm sm:text-base leading-tight drop-shadow">
             {caption}
           </div>
