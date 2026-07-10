@@ -730,108 +730,72 @@ function ItineraryView({
 
       {tab === "days" && (
         <section className="mb-12">
-          <p className="text-xs text-muted-foreground mb-4 italic">One mood board for the whole trip — drag to rearrange across days, hit shuffle to remix, or drop in your own.</p>
+          <p className="text-xs text-muted-foreground mb-4 italic">One big mood board — drag to rearrange, or drop in your own.</p>
           <div className="grid grid-cols-2 md:grid-cols-6 auto-rows-[130px] gap-3">
-            {it.days.map((d, dayIdx) => {
-              const total = d.stops.reduce((a, s) => a + s.durationMin, 0);
-              const commuteMins = d.stops.slice(1).reduce((sum, s, i) => sum + commuteFor(d.stops[i], s).mins, 0);
-              const prevDayLast = dayIdx > 0 ? it.days[dayIdx - 1].stops.at(-1) ?? null : null;
+            {allStops.map((item, globalIdx) => {
+              const { stop, dayIdx, stopIdx } = item;
+              const prev = stopIdx > 0 ? it.days[dayIdx].stops[stopIdx - 1] : null;
+              const crossCommute = prev ? commuteFor(prev, stop) : null;
+              const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === stopIdx;
               return (
-                <>
-                  {/* Day header tile */}
-                  <div className="col-span-2 md:col-span-6 row-span-1 flex items-center justify-between px-4 py-3 rounded-2xl bg-card border border-border">
-                    <div className="flex items-baseline gap-3">
-                      <div className="font-serif-italic text-2xl">Day {d.day}</div>
-                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                        {Math.round(total / 60)}h
-                        {commuteMins > 0 && <span> · {commuteMins}m transit</span>}
-                      </div>
-                      {d.theme && <div className="text-xs text-muted-foreground italic hidden sm:inline">{d.theme}</div>}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => onShuffleDay(dayIdx)}
-                        disabled={d.stops.length < 2}
-                        className="text-xs px-3 py-1.5 rounded-full border border-border bg-background hover:border-primary/50 cursor-pointer whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        🔀 Shuffle
-                      </button>
-                      <button
-                        onClick={() => { setAddingDay(dayIdx); setAddText(""); }}
-                        className="text-xs px-3 py-1.5 rounded-full border border-border bg-background hover:border-primary/50 cursor-pointer whitespace-nowrap"
-                      >
-                        + Add stop
-                      </button>
-                    </div>
-                  </div>
-
-                  {d.stops.map((s, i) => {
-                    const globalIndex = allStops.findIndex((x) => x.stop.id === s.id);
-                    const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i;
-                    const prev = i > 0 ? d.stops[i - 1] : null;
-                    const crossCommute = prev ? commuteFor(prev, s) : null;
-                    return (
-                      <StopCard
-                        key={s.id}
-                        stop={s}
-                        city={it.city}
-                        country={it.country}
-                        isOver={isOver}
-                        size={bentoSize(i, d.stops.length)}
-                        commute={crossCommute}
-                        onDragStart={() => { dragRef.current = { dayIdx, stopIdx: i }; }}
-                        onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          if (!dragOver || dragOver.dayIdx !== dayIdx || dragOver.stopIdx !== i) {
-                            setDragOver({ dayIdx, stopIdx: i });
-                          }
-                        }}
-                        onDragLeave={() => {
-                          if (dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i) setDragOver(null);
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          const from = dragRef.current;
-                          if (!from) return;
-                          onMoveAcross(from.dayIdx, from.stopIdx, dayIdx, i);
-                          dragRef.current = null;
-                          setDragOver(null);
-                        }}
-                        onRemove={() => onRemove(dayIdx, i)}
-                        onExpand={() => setExpandedIndex(globalIndex)}
-                      />
-                    );
-                  })}
-
-                  {addingDay === dayIdx ? (
-                    <div className="col-span-2 md:col-span-6 row-span-1 flex items-center gap-2 px-2">
-                      <form
-                        onSubmit={(e) => { e.preventDefault(); onAddStop(dayIdx, addText); setAddingDay(null); setAddText(""); }}
-                        className="flex items-center gap-2 w-full"
-                      >
-                        <input
-                          autoFocus
-                          value={addText}
-                          onChange={(e) => setAddText(e.target.value)}
-                          placeholder="e.g. Templo Mayor museum"
-                          className="flex-1 text-sm bg-card border border-border rounded-full px-3 py-1.5 outline-none focus:border-primary"
-                        />
-                        <button type="submit" className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer">Add</button>
-                        <button type="button" onClick={() => setAddingDay(null)} className="text-xs px-2 py-1.5 text-muted-foreground hover:text-foreground cursor-pointer">Cancel</button>
-                      </form>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => { setAddingDay(dayIdx); setAddText(""); }}
-                      className="col-span-2 md:col-span-6 row-span-1 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl py-2 cursor-pointer"
-                    >
-                      + Add a stop to day {d.day}
-                    </button>
-                  )}
-                </>
+                <StopCard
+                  key={stop.id}
+                  stop={stop}
+                  city={it.city}
+                  country={it.country}
+                  isOver={isOver}
+                  size={bentoSize(globalIdx, allStops.length)}
+                  commute={crossCommute}
+                  onDragStart={() => { dragRef.current = { dayIdx, stopIdx }; }}
+                  onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (!dragOver || dragOver.dayIdx !== dayIdx || dragOver.stopIdx !== stopIdx) {
+                      setDragOver({ dayIdx, stopIdx });
+                    }
+                  }}
+                  onDragLeave={() => {
+                    if (dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === stopIdx) setDragOver(null);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const from = dragRef.current;
+                    if (!from) return;
+                    onMoveAcross(from.dayIdx, from.stopIdx, dayIdx, stopIdx);
+                    dragRef.current = null;
+                    setDragOver(null);
+                  }}
+                  onRemove={() => onRemove(dayIdx, stopIdx)}
+                  onExpand={() => setExpandedIndex(globalIdx)}
+                />
               );
             })}
+
+            {addingDay !== null ? (
+              <div className="col-span-2 md:col-span-6 row-span-1 flex items-center gap-2 px-2">
+                <form
+                  onSubmit={(e) => { e.preventDefault(); onAddStop(addingDay, addText); setAddingDay(null); setAddText(""); }}
+                  className="flex items-center gap-2 w-full"
+                >
+                  <input
+                    autoFocus
+                    value={addText}
+                    onChange={(e) => setAddText(e.target.value)}
+                    placeholder="e.g. Templo Mayor museum"
+                    className="flex-1 text-sm bg-card border border-border rounded-full px-3 py-1.5 outline-none focus:border-primary"
+                  />
+                  <button type="submit" className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer">Add</button>
+                  <button type="button" onClick={() => setAddingDay(null)} className="text-xs px-2 py-1.5 text-muted-foreground hover:text-foreground cursor-pointer">Cancel</button>
+                </form>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setAddingDay(it.days.length - 1); setAddText(""); }}
+                className="col-span-2 md:col-span-6 row-span-1 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl py-2 cursor-pointer"
+              >
+                + Add a stop
+              </button>
+            )}
           </div>
         </section>
       )}
