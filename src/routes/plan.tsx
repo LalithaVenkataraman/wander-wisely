@@ -986,9 +986,7 @@ function StopCard({
       </div>
       <div className="absolute inset-0 flex flex-col justify-between p-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="text-[10px] uppercase tracking-widest bg-black/45 backdrop-blur px-2 py-1 rounded-full text-white/85">
-          {stop.timeOfDay}
-        </div>
+          <div />
         <button
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
           aria-label="Remove stop"
