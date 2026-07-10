@@ -730,101 +730,85 @@ function ItineraryView({
 
       {tab === "days" && (
         <section className="mb-12">
-          <p className="text-xs text-muted-foreground mb-4 italic">A mood board for each day — drag to rearrange, hit shuffle to remix, or drop in your own.</p>
-          <div className="space-y-6">
+          <p className="text-xs text-muted-foreground mb-4 italic">One mood board for the whole trip — drag to rearrange across days, hit shuffle to remix, or drop in your own.</p>
+          <div className="grid grid-cols-2 md:grid-cols-6 auto-rows-[130px] gap-3">
             {it.days.map((d, dayIdx) => {
               const total = d.stops.reduce((a, s) => a + s.durationMin, 0);
               const commuteMins = d.stops.slice(1).reduce((sum, s, i) => sum + commuteFor(d.stops[i], s).mins, 0);
+              const prevDayLast = dayIdx > 0 ? it.days[dayIdx - 1].stops.at(-1) ?? null : null;
               return (
-                <div key={d.day}>
-                  <div className="flex items-baseline justify-between mb-3">
-                    <div>
+                <>
+                  {/* Day header tile */}
+                  <div className="col-span-2 md:col-span-6 row-span-1 flex items-center justify-between px-4 py-3 rounded-2xl bg-card border border-border">
+                    <div className="flex items-baseline gap-3">
+                      <div className="font-serif-italic text-2xl">Day {d.day}</div>
                       <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                        Day {d.day} · {Math.round(total / 60)}h
-                        {commuteMins > 0 && <span> · {commuteMins}m getting around</span>}
+                        {Math.round(total / 60)}h
+                        {commuteMins > 0 && <span> · {commuteMins}m transit</span>}
                       </div>
-                      <div className="font-serif-italic text-2xl">{d.title}</div>
-                      {d.theme && (
-                        <div className="text-xs text-muted-foreground mt-1 max-w-md italic">
-                          Why together: {d.theme}
-                        </div>
-                      )}
+                      {d.theme && <div className="text-xs text-muted-foreground italic hidden sm:inline">{d.theme}</div>}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => onShuffleDay(dayIdx)}
                         disabled={d.stops.length < 2}
-                        className="text-xs px-3 py-1.5 rounded-full border border-border bg-card hover:border-primary/50 cursor-pointer whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="text-xs px-3 py-1.5 rounded-full border border-border bg-background hover:border-primary/50 cursor-pointer whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         🔀 Shuffle
                       </button>
                       <button
                         onClick={() => { setAddingDay(dayIdx); setAddText(""); }}
-                        className="text-xs px-3 py-1.5 rounded-full border border-border bg-card hover:border-primary/50 cursor-pointer whitespace-nowrap"
+                        className="text-xs px-3 py-1.5 rounded-full border border-border bg-background hover:border-primary/50 cursor-pointer whitespace-nowrap"
                       >
                         + Add stop
                       </button>
                     </div>
                   </div>
-                  <div
-                    onDragOver={(e) => { e.preventDefault(); }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const from = dragRef.current;
-                      if (!from) return;
-                      onMoveAcross(from.dayIdx, from.stopIdx, dayIdx, d.stops.length);
-                      dragRef.current = null;
-                      setDragOver(null);
-                    }}
-                    className="p-3 rounded-2xl bg-[#1a1614] border border-dashed border-border/60 min-h-[140px]"
-                  >
-                    {d.stops.length === 0 && (
-                      <div className="text-sm text-muted-foreground/80 italic px-2 py-6 text-center">
-                        Empty day. Drop a stop here, or add one above.
-                      </div>
-                    )}
-                    <div className="grid grid-cols-2 md:grid-cols-6 auto-rows-[130px] gap-3">
-                      {d.stops.map((s, i) => {
-                        const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i;
-                        const prev = i > 0 ? d.stops[i - 1] : null;
-                        return (
-                          <StopCard
-                              key={s.id}
-                              stop={s}
-                              city={it.city}
-                              country={it.country}
-                              isOver={isOver}
-                              size={bentoSize(i, d.stops.length)}
-                              commute={prev ? commuteFor(prev, s) : null}
-                              onDragStart={() => { dragRef.current = { dayIdx, stopIdx: i }; }}
-                              onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
-                              onDragOver={(e) => {
-                                e.preventDefault();
-                                if (!dragOver || dragOver.dayIdx !== dayIdx || dragOver.stopIdx !== i) {
-                                  setDragOver({ dayIdx, stopIdx: i });
-                                }
-                              }}
-                              onDragLeave={() => {
-                                if (dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i) setDragOver(null);
-                              }}
-                              onDrop={(e) => {
-                                e.preventDefault();
-                                const from = dragRef.current;
-                                if (!from) return;
-                                onMoveAcross(from.dayIdx, from.stopIdx, dayIdx, i);
-                                dragRef.current = null;
-                                setDragOver(null);
-                              }}
-                              onRemove={() => onRemove(dayIdx, i)}
-                              onExpand={() => setExpandedIndex(allStops.findIndex((x) => x.stop.id === s.id))}
-                          />
-                        );
-                      })}
-                    </div>
-                    {addingDay === dayIdx ? (
+
+                  {d.stops.map((s, i) => {
+                    const globalIndex = allStops.findIndex((x) => x.stop.id === s.id);
+                    const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i;
+                    const prev = i > 0 ? d.stops[i - 1] : null;
+                    const crossCommute = prev ? commuteFor(prev, s) : null;
+                    return (
+                      <StopCard
+                        key={s.id}
+                        stop={s}
+                        city={it.city}
+                        country={it.country}
+                        isOver={isOver}
+                        size={bentoSize(i, d.stops.length)}
+                        commute={crossCommute}
+                        onDragStart={() => { dragRef.current = { dayIdx, stopIdx: i }; }}
+                        onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (!dragOver || dragOver.dayIdx !== dayIdx || dragOver.stopIdx !== i) {
+                            setDragOver({ dayIdx, stopIdx: i });
+                          }
+                        }}
+                        onDragLeave={() => {
+                          if (dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === i) setDragOver(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const from = dragRef.current;
+                          if (!from) return;
+                          onMoveAcross(from.dayIdx, from.stopIdx, dayIdx, i);
+                          dragRef.current = null;
+                          setDragOver(null);
+                        }}
+                        onRemove={() => onRemove(dayIdx, i)}
+                        onExpand={() => setExpandedIndex(globalIndex)}
+                      />
+                    );
+                  })}
+
+                  {addingDay === dayIdx ? (
+                    <div className="col-span-2 md:col-span-6 row-span-1 flex items-center gap-2 px-2">
                       <form
                         onSubmit={(e) => { e.preventDefault(); onAddStop(dayIdx, addText); setAddingDay(null); setAddText(""); }}
-                        className="mt-3 flex items-center gap-2"
+                        className="flex items-center gap-2 w-full"
                       >
                         <input
                           autoFocus
@@ -836,16 +820,16 @@ function ItineraryView({
                         <button type="submit" className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer">Add</button>
                         <button type="button" onClick={() => setAddingDay(null)} className="text-xs px-2 py-1.5 text-muted-foreground hover:text-foreground cursor-pointer">Cancel</button>
                       </form>
-                    ) : (
-                      <button
-                        onClick={() => { setAddingDay(dayIdx); setAddText(""); }}
-                        className="mt-3 w-full text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl py-2 cursor-pointer"
-                      >
-                        + Add a stop to day {d.day}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setAddingDay(dayIdx); setAddText(""); }}
+                      className="col-span-2 md:col-span-6 row-span-1 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl py-2 cursor-pointer"
+                    >
+                      + Add a stop to day {d.day}
+                    </button>
+                  )}
+                </>
               );
             })}
           </div>
@@ -1002,9 +986,7 @@ function StopCard({
       </div>
       <div className="absolute inset-0 flex flex-col justify-between p-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="text-[10px] uppercase tracking-widest bg-black/45 backdrop-blur px-2 py-1 rounded-full text-white/85">
-          {stop.timeOfDay}
-        </div>
+          <div />
         <button
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
           aria-label="Remove stop"
