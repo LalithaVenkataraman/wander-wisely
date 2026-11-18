@@ -655,7 +655,7 @@ function ItineraryView({
 }) {
   const [tab, setTab] = useState<"days" | "stay" | "eat" | "postcards" | "reviews">("days");
   const dragRef = useRef<{ dayIdx: number; stopIdx: number } | null>(null);
-  const [dragOver, setDragOver] = useState<{ dayIdx: number; stopIdx: number } | null>(null);
+  const justDragged = useRef(false);
   const [addingDay, setAddingDay] = useState<number | null>(null);
   const [addText, setAddText] = useState("");
 
@@ -736,37 +736,39 @@ function ItineraryView({
               const { stop, dayIdx, stopIdx } = item;
               const prev = stopIdx > 0 ? it.days[dayIdx].stops[stopIdx - 1] : null;
               const crossCommute = prev ? commuteFor(prev, stop) : null;
-              const isOver = dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === stopIdx;
               return (
                 <StopCard
                   key={stop.id}
                   stop={stop}
                   city={it.city}
                   country={it.country}
-                  isOver={isOver}
                   size={bentoSize(globalIdx, allStops.length)}
                   commute={crossCommute}
-                  onDragStart={() => { dragRef.current = { dayIdx, stopIdx }; }}
-                  onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", stop.id);
+                    dragRef.current = { dayIdx, stopIdx };
+                  }}
+                  onDragEnd={() => {
+                    dragRef.current = null;
+                    justDragged.current = true;
+                    setTimeout(() => { justDragged.current = false; }, 200);
+                  }}
                   onDragOver={(e) => {
                     e.preventDefault();
-                    if (!dragOver || dragOver.dayIdx !== dayIdx || dragOver.stopIdx !== stopIdx) {
-                      setDragOver({ dayIdx, stopIdx });
-                    }
-                  }}
-                  onDragLeave={() => {
-                    if (dragOver?.dayIdx === dayIdx && dragOver?.stopIdx === stopIdx) setDragOver(null);
+                    e.dataTransfer.dropEffect = "move";
+                    const from = dragRef.current;
+                    if (!from || (from.dayIdx === dayIdx && from.stopIdx === stopIdx)) return;
+                    // Live-reorder: shift the dragged tile into this slot as you hover.
+                    onMoveAcross(from.dayIdx, from.stopIdx, dayIdx, stopIdx);
+                    dragRef.current = { dayIdx, stopIdx };
                   }}
                   onDrop={(e) => {
                     e.preventDefault();
-                    const from = dragRef.current;
-                    if (!from) return;
-                    onMoveAcross(from.dayIdx, from.stopIdx, dayIdx, stopIdx);
                     dragRef.current = null;
-                    setDragOver(null);
                   }}
                   onRemove={() => onRemove(dayIdx, stopIdx)}
-                  onExpand={() => setExpandedIndex(globalIdx)}
+                  onExpand={() => { if (!justDragged.current) setExpandedIndex(globalIdx); }}
                 />
               );
             })}
@@ -897,19 +899,17 @@ function stopImages(stop: { id: string; title: string }, city: string, country: 
 }
 
 function StopCard({
-  stop, city, country, isOver, commute, size = "sm",
-  onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onRemove, onExpand,
+  stop, city, country, commute, size = "sm",
+  onDragStart, onDragEnd, onDragOver, onDrop, onRemove, onExpand,
 }: {
   stop: { id: string; title: string; note: string; durationMin: number; timeOfDay: string };
   city: string;
   country: string;
-  isOver: boolean;
   commute: Commute | null;
   size?: "sm" | "md" | "lg" | "wide" | "tall";
-  onDragStart: () => void;
+  onDragStart: (e: React.DragEvent) => void;
   onDragEnd: () => void;
   onDragOver: (e: React.DragEvent) => void;
-  onDragLeave: () => void;
   onDrop: (e: React.DragEvent) => void;
   onRemove: () => void;
   onExpand: () => void;
@@ -928,18 +928,16 @@ function StopCard({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
       onDrop={onDrop}
       onClick={onExpand}
-      className={`group relative bg-black border rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all ${spanClass} ${
-        isOver ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"
-      }`}
+      className={`group relative bg-black border rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none transition-all ${spanClass} border-border hover:border-primary/50`}
     >
       <div className="absolute inset-0 bg-muted">
         <img
           src={img}
           alt=""
           loading="lazy"
+          draggable={false}
           className="w-full h-full object-cover opacity-80 saturate-[0.85] group-hover:opacity-95 group-hover:saturate-100 transition-all duration-500"
           onError={(e) => {
             (e.currentTarget.parentElement as HTMLElement).classList.add("bg-gradient-to-br", "from-primary/20", "to-muted");
@@ -950,7 +948,9 @@ function StopCard({
       </div>
       <div className="absolute inset-0 flex flex-col justify-between p-3">
         <div className="flex items-start justify-between gap-2">
-          <div />
+          <div className="w-7 h-7 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-[11px] text-white/80 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden>
+            ⠿
+          </div>
         <button
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
           aria-label="Remove stop"
