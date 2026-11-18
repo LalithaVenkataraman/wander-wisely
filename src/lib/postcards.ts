@@ -1,6 +1,7 @@
-// Instagram-style "postcards" — real photos by keyword, no API key needed.
-// Uses loremflickr which serves real Flickr photos by tag.
-// `lock` makes the same URL return the same photo every time.
+// Instagram-style "postcards" — real photos, no API key needed.
+// Uses picsum.photos with a deterministic seed per tag+index, so the same
+// city always shows the same set of photos. (loremflickr was keyword-matched
+// but is unreliable — it started returning 500s.)
 
 const CITY_TAGS: Record<string, string[]> = {
   goa: ["goa", "beach", "palmtrees", "sunset"],
@@ -77,8 +78,8 @@ export function getPostcards(city?: string, country?: string, n = 6): string[] {
   const out: string[] = [];
   for (let i = 0; i < n; i++) {
     const tag = tags[i % tags.length];
-    // lock=<n> returns a deterministic but distinct photo per seed
-    out.push(`https://loremflickr.com/640/800/${encodeURIComponent(tag)}?lock=${i + 1}`);
+    // Deterministic seed → the same tag always returns the same photo
+    out.push(`https://picsum.photos/seed/${encodeURIComponent(`${tag}-postcard-${i + 1}`)}/640/800`);
   }
   return out;
 }
